@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <% platform_name = @conf['platform_name'] && escape_html(@conf['platform_name']) %>
+<% navbar_text = text_color_on(@conf['navbar_color']) %>
+<% dropdown_text = text_color_on(@conf['dropdown_color']) %>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -92,10 +94,10 @@
         min-width: 768px;
       }
       .ood-logo {
-        filter: invert(1) grayscale(100%);
+        filter: <%= navbar_text == "white" ? "invert(1) " : "" %>grayscale(100%);
       }
       a:hover .ood-logo {
-        filter: brightness(0) invert(1) grayscale(100%);
+        filter: brightness(0) <%= navbar_text == "white" ? "invert(1) " : "" %>grayscale(100%);
       }
 
       /* The timing of Bootstrap's navigation animation (which changes color when the mouse cursor is over it) differs
@@ -104,7 +106,7 @@
        transition: none !important;
      }
      .nav-link:hover {
-       color: white !important;
+       color: <%= navbar_text %> !important;
      }
       <% if @dir_name == "history" %>
       #_historyTbody td {
@@ -159,7 +161,7 @@
 
   <body style="visibility: hidden;">
     <div id="_form_container" class="container-fluid">
-      <nav class="navbar navbar-expand mx-1 navbar-dark bg-gradient" style="background:<%= @conf['navbar_color'] %>;">
+      <nav class="navbar navbar-expand mx-1 <%= 'navbar-dark' if navbar_text == 'white' %> bg-gradient" style="background:<%= @conf['navbar_color'] %>;">
         <div class="container-fluid">
           <% if platform_name %>
             <span class="navbar-brand"><%= platform_name %></span>
@@ -173,7 +175,7 @@
                 <a href="#" class="nav-link dropdown-toggle <%= active?("" != @dir_name && "history" != @dir_name) %>" data-bs-toggle="dropdown">
                   Application
                 </a>
-                <ul class="dropdown-menu dropdown-menu-dark bg-gradient" style="background:<%= @conf['dropdown_color'] %>;">
+                <ul class="dropdown-menu <%= 'dropdown-menu-dark' if dropdown_text == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>;">
                   <% @manifests_w_category.group_by(&:category).each do |category, manifests| %>
                     <li class="dropdown-header"><%= category %></li>
                     <% manifests.each do |m| %>
@@ -221,7 +223,7 @@
                       <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>
                       <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-dark bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
+                    <ul class="dropdown-menu <%= 'dropdown-menu-dark' if dropdown_text == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
                       <% @conf["login_node"].each do |key, value| %>
                         <li><a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= value %>" class="dropdown-item"><%= key %></a></li>
                       <% end %>
@@ -250,7 +252,7 @@
       <%= yield %>
 
       <footer class="footer py-1 bg-gradient mx-1 <%= @dir_name == '' ? 'mt-3' : '' %>" style="background:<%= @conf['footer_color'] %>;">
-        <div class="row text-white align-items-center">
+        <div class="row text-<%= text_color_on(@conf['footer_color']) %> align-items-center">
           <div class="col text-start"></div> <!-- An empty column to center the middle text -->
           <div class="col text-center"><%= @conf['footer'] %></div>
           <div class="col text-end small mx-3">Open Composer version: <%= @version %></div>

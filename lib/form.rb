@@ -4,6 +4,27 @@ helpers do
     return "active" if flag
   end
 
+  # Returns "black" or "white", whichever contrasts more with the background color,
+  # by WCAG relative luminance. The color is "#RGB", "#RRGGBB" (either with alpha) or
+  # "rgb()"/"rgba()"; any other color gets "white", the text color before this rule.
+  def text_color_on(color)
+    rgb = case color.to_s.strip
+          when /\A#(\h)(\h)(\h)\h?\z/                   then [$1, $2, $3].map { |c| (c * 2).hex }
+          when /\A#(\h\h)(\h\h)(\h\h)(\h\h)?\z/         then [$1, $2, $3].map(&:hex)
+          when /\Argba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/ then [$1, $2, $3].map(&:to_i)
+          end
+    return "white" unless rgb
+
+    linear = rgb.map do |c|
+      c = [c, 255].min / 255.0
+      c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055)**2.4
+    end
+    luminance = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    # Contrast with black is (L + 0.05) / 0.05 and with white 1.05 / (L + 0.05).
+    (luminance + 0.05) / 0.05 > 1.05 / (luminance + 0.05) ? "black" : "white"
+  end
+
   # Output a label with HTML label tags and an optional asterisk of label.
   def output_label_with_label_tag(key, value, i)
     label = if value['label'].dig(1).is_a?(Array)
