@@ -11,3 +11,6 @@ conf.yml.erb
 
 # Regenerated from docs by misc/tests/run_tests.rb
 misc/tests/samples/
+
+# Browser tests
+__pycache__/

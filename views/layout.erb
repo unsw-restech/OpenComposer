@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<% platform_name = @conf['platform_name'] && escape_html(@conf['platform_name']) %>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/<%= @conf['highlight_theme'] %>.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
     <title>
-      <%= "#{@name} | Open Composer" %>
+      <%= "#{@name} | #{platform_name || 'Open Composer'}" %>
     </title>
     <style>
       #<%= OC_SCRIPT_CONTENT %>, #<%= SUBMIT_CONTENT %>, #<%= OC_SCRIPT_CONTENT %>_highlight, #<%= SUBMIT_CONTENT %>_highlight {
@@ -160,6 +161,9 @@
     <div id="_form_container" class="container-fluid">
       <nav class="navbar navbar-expand mx-1 navbar-dark bg-gradient" style="background:<%= @conf['navbar_color'] %>;">
         <div class="container-fluid">
+          <% if platform_name %>
+            <span class="navbar-brand"><%= platform_name %></span>
+          <% end %>
           <div class="collapse navbar-collapse">
             <ul class="navbar-nav">
               <li class="nav-item">
@@ -196,6 +200,14 @@
             </ul>
 
             <ul class="navbar-nav ms-auto">
+              <% if @conf['catalogue_url'] %>
+                <li class="nav-item">
+                  <a target="_blank" href="<%= escape_html(@conf['catalogue_url']) %>" class="nav-link py-0" aria-label="Catalogue">
+                    <i class="fas fa-table-cells-large fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
+                    <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Catalogue</span>
+                  </a>
+                </li>
+              <% end %>
               <li class="nav-item">
                 <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files" class="nav-link py-0">
                   <i class="fas fa-home fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>

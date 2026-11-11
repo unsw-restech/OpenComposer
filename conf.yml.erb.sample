@@ -43,6 +43,8 @@ scheduler: "slurm"
 #  OC_HISTORY_SUBMISSION_TIME:
 
 ## Layout
+#platform_name:           "Example Platform"
+#catalogue_url:           "https://example.com/catalogue/"
 #footer:                  "RIKEN Center for Computational Science"
 #thumbnail_width:         "100"
 #highlight_theme:         "vs"
