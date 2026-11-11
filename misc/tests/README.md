@@ -37,18 +37,13 @@ browser.
 `browser/` holds this fork's browser tests. Each test starts Open Composer
 with `rackup` on the forms in `browser/apps/`, using a `conf.yml` it writes to a
 temporary directory (the checkout's own `conf.yml.erb` is never read), and
-drives the page in headless Chromium through Playwright. CI runs them after
-the smoke tests (`.github/workflows/tests.yml`).
+drives the page in headless Chromium through Playwright.
 
-To run them locally, install the gems in `misc/Gemfile` so that `rackup` is on
-the `PATH`, then:
-
-```
-uv venv /tmp/oc-venv
-uv pip install --python /tmp/oc-venv -r misc/tests/browser/requirements.txt
-/tmp/oc-venv/bin/playwright install chromium-headless-shell
-/tmp/oc-venv/bin/pytest misc/tests/browser
-```
-
-On a machine without Chromium's system libraries, `playwright install
---with-deps chromium-headless-shell` installs them (it needs `sudo`).
+`misc/tests/run` runs the smoke tests and then the browser tests, as CI does
+(`.github/workflows/tests.yml`); arguments go to pytest. It needs Ruby with the
+gems in `misc/Gemfile`, from bundler or `gem install --user-install`, and
+[uv](https://docs.astral.sh/uv/). It installs Playwright into a venv at
+`~/.cache/opencomposer-tests/venv`, and Playwright installs Chromium into
+`~/.cache/ms-playwright`. Chromium's system libraries need root: CI installs
+them, and elsewhere run
+`sudo ~/.cache/opencomposer-tests/venv/bin/playwright install-deps chromium-headless-shell`.
