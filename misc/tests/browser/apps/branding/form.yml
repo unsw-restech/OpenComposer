@@ -1,0 +1,11 @@
+---
+form:
+  cores:
+    widget: number
+    label: Cores
+    value: 1
+    min: 1
+
+script: |
+  #PBS -l select=1:ncpus=#{cores}
+  echo hello

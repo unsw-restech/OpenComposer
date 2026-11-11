@@ -1,0 +1,33 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/misc/Gemfile
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Upstream smoke tests
+        run: bundle exec ruby misc/tests/run_tests.rb
+
+      - uses: astral-sh/setup-uv@v10.3.0
+
+      - name: Browser tests
+        run: |
+          uv venv "$RUNNER_TEMP/venv"
+          uv pip install --python "$RUNNER_TEMP/venv" -r misc/tests/browser/requirements.txt
+          "$RUNNER_TEMP/venv/bin/playwright" install --with-deps chromium-headless-shell
+          bundle exec "$RUNNER_TEMP/venv/bin/pytest" -p no:cacheprovider misc/tests/browser

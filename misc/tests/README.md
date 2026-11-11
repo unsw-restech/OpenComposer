@@ -31,3 +31,24 @@ These are smoke tests: they guarantee that every documented sample builds
 cleanly, but they do not exercise browser-side behavior (clicking a widget
 and observing the Dynamic Form Widget's effect). Test that layer in a real
 browser.
+
+# Browser tests
+
+`browser/` holds this fork's browser tests. Each test starts Open Composer
+with `rackup` on the forms in `browser/apps/`, using a `conf.yml` it writes to a
+temporary directory (the checkout's own `conf.yml.erb` is never read), and
+drives the page in headless Chromium through Playwright. CI runs them after
+the smoke tests (`.github/workflows/tests.yml`).
+
+To run them locally, install the gems in `misc/Gemfile` so that `rackup` is on
+the `PATH`, then:
+
+```
+uv venv /tmp/oc-venv
+uv pip install --python /tmp/oc-venv -r misc/tests/browser/requirements.txt
+/tmp/oc-venv/bin/playwright install chromium-headless-shell
+/tmp/oc-venv/bin/pytest misc/tests/browser
+```
+
+On a machine without Chromium's system libraries, `playwright install
+--with-deps chromium-headless-shell` installs them (it needs `sudo`).

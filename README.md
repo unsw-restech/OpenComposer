@@ -1,3 +1,20 @@
+## About this fork
+
+This is UNSW Research Technology Services' fork of [Open Composer](https://github.com/OpenOnDemandJP/OpenComposer), based on upstream release `v2.0.2`. It runs the [IRIS](https://docs.restech.unsw.edu.au/iris/) imaging workflows on Katana OnDemand, and other platforms can install the same code with their own `conf.yml.erb`.
+
+- **Upstream releases only.** Upstream release tags are merged on purpose, one at a time, after this fork's browser tests pass on the merge. The fork never tracks upstream `main` or `develop`.
+- **Generic code, platform in config.** Nothing in the code names IRIS. Each platform sets its own name and catalogue link through the branding keys below.
+- **Tests.** CI runs upstream's smoke tests (`misc/tests/run_tests.rb`) unchanged, and the fork's browser tests (`misc/tests/browser/`), which start Open Composer on test forms and drive the page in headless Chromium with Playwright. `misc/tests/README.md` says how to run both.
+
+### Branding keys
+
+Both are optional. Unset, the page looks as it does upstream.
+
+| Key | Effect | IRIS sets |
+|---|---|---|
+| `platform_name` | Shown as text at the left of the navbar, and in the tab title, as `<form> \| <platform_name>` in place of `<form> \| Open Composer` | `IRIS` |
+| `catalogue_url` | Adds a **Catalogue** link to the navbar, opening the platform's catalogue in a new tab | `https://docs.restech.unsw.edu.au/iris/` |
+
 ## Overview
 
 Open Composer is a web application to generate batch job scripts and submit batch jobs for HPC clusters on [Open OnDemand](https://openondemand.org/).
