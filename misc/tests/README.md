@@ -37,7 +37,8 @@ browser.
 `browser/` holds this fork's browser tests. Each test starts Open Composer
 with `rackup` on the forms in `browser/apps/`, using a `conf.yml` it writes to a
 temporary directory (the checkout's own `conf.yml.erb` is never read), and
-drives the page in headless Chromium through Playwright.
+drives the page in headless Chromium through Playwright. `test_serve.py`
+beside them tests `serve` (below) without a browser.
 
 `misc/tests/run` runs the smoke tests and then the browser tests, as CI does
 (`.github/workflows/tests.yml`); arguments go to pytest. It needs Ruby with the
@@ -47,3 +48,13 @@ gems in `misc/Gemfile`, from bundler or `gem install --user-install`, and
 `~/.cache/ms-playwright`. Chromium's system libraries need root: CI installs
 them, and elsewhere run
 `sudo ~/.cache/opencomposer-tests/venv/bin/playwright install-deps chromium-headless-shell`.
+
+# Trying a conf by hand
+
+`misc/tests/serve <conf.yml>` starts one instance on a conf file, the way
+the browser tests do (`browser/instance.py`), and prints its URL and log
+before it stays up. Use it to see what a page shows under some settings,
+such as an `apps_dir` that doesn't exist. The browser tests' defaults fill in
+what the file leaves out, and a relative `apps_dir` or `data_dir` resolves
+from the directory `serve` runs in. Stop it with Ctrl-C or SIGTERM, which also
+removes its directory.

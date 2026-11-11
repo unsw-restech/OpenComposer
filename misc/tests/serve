@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# misc/tests/serve <conf.yml>: start Open Composer on that file's settings,
+# print its URL and log, and keep it up until interrupted (Ctrl-C or
+# SIGTERM), which also removes its directory. Its defaults and how it starts
+# are the browser tests' own: misc/tests/browser/instance.py.
+set -euo pipefail
+# shellcheck source=misc/tests/env.sh
+source "$(dirname "$0")/env.sh"
+exec "$venv/bin/python" "$(dirname "$0")/browser/instance.py" "$@"

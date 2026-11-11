@@ -3,12 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-PATH="$PATH:$(ruby -e 'print Gem.user_dir')/bin"  # rackup from a --user-install
+# shellcheck source=misc/tests/env.sh
+source misc/tests/env.sh
 ruby misc/tests/run_tests.rb
 
-venv="${XDG_CACHE_HOME:-$HOME/.cache}/opencomposer-tests/venv"
-uv venv -q --allow-existing "$venv"
-uv pip install -q --python "$venv" -r misc/tests/browser/requirements.txt
 # CI installs Chromium's system libraries too, which needs sudo.
 "$venv/bin/playwright" install ${CI:+--with-deps} chromium-headless-shell
 "$venv/bin/pytest" -p no:cacheprovider misc/tests/browser "$@"
