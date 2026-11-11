@@ -2,6 +2,7 @@
 <html lang="en">
 <% platform_name = @conf['platform_name'] && escape_html(@conf['platform_name']) %>
 <% navbar_text = text_color_on(@conf['navbar_color']) %>
+<% dropdown_text = text_color_on(@conf['dropdown_color']) %>
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -96,7 +97,7 @@
         filter: <%= navbar_text == "white" ? "invert(1) " : "" %>grayscale(100%);
       }
       a:hover .ood-logo {
-        filter: brightness(0)<%= navbar_text == "white" ? " invert(1)" : "" %>;
+        filter: brightness(0) <%= navbar_text == "white" ? "invert(1) " : "" %>grayscale(100%);
       }
 
       /* The timing of Bootstrap's navigation animation (which changes color when the mouse cursor is over it) differs
@@ -174,7 +175,7 @@
                 <a href="#" class="nav-link dropdown-toggle <%= active?("" != @dir_name && "history" != @dir_name) %>" data-bs-toggle="dropdown">
                   Application
                 </a>
-                <ul class="dropdown-menu <%= 'dropdown-menu-dark' if text_color_on(@conf['dropdown_color']) == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>;">
+                <ul class="dropdown-menu <%= 'dropdown-menu-dark' if dropdown_text == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>;">
                   <% @manifests_w_category.group_by(&:category).each do |category, manifests| %>
                     <li class="dropdown-header"><%= category %></li>
                     <% manifests.each do |m| %>
@@ -222,7 +223,7 @@
                       <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>
                       <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
                     </a>
-                    <ul class="dropdown-menu <%= 'dropdown-menu-dark' if text_color_on(@conf['dropdown_color']) == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
+                    <ul class="dropdown-menu <%= 'dropdown-menu-dark' if dropdown_text == 'white' %> bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
                       <% @conf["login_node"].each do |key, value| %>
                         <li><a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= value %>" class="dropdown-item"><%= key %></a></li>
                       <% end %>
