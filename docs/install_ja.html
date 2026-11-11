@@ -81,6 +81,11 @@ $ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
         <code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>clusters</code>の中に定義しても構いません）。
       </p>
 
+      <p>
+        ナビゲーションバー、ドロップダウンメニュー、フッタ、カテゴリ、アプリケーションの説明の文字色は、背景色とのコントラストが大きい方の黒または白になります。
+        背景色が<code>#RGB</code>、<code>#RRGGBB</code>、<code>rgb()</code>以外の形式で書かれている場合、文字色は白になります。
+      </p>
+
       <h3 id="clusters">2.1. clusters</h3>
       <p>
         複数のクラスタを設定します。本設定では、<code>scheduler</code>、<code>login_node</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>scheduler_env</code>、<code>copy_environment</code>、<code>sge_root</code>がクラスタ毎に設定できます。1つのクラスタのみを使う場合、本設定は省略可能です。
