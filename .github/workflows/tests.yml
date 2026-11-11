@@ -20,14 +20,7 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - name: Upstream smoke tests
-        run: bundle exec ruby misc/tests/run_tests.rb
-
       - uses: astral-sh/setup-uv@v10.3.0
 
-      - name: Browser tests
-        run: |
-          uv venv "$RUNNER_TEMP/venv"
-          uv pip install --python "$RUNNER_TEMP/venv" -r misc/tests/browser/requirements.txt
-          "$RUNNER_TEMP/venv/bin/playwright" install --with-deps chromium-headless-shell
-          bundle exec "$RUNNER_TEMP/venv/bin/pytest" -p no:cacheprovider misc/tests/browser
+      - name: Smoke and browser tests
+        run: bundle exec misc/tests/run
