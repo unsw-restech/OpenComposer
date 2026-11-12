@@ -8,8 +8,7 @@
 # and is not extracted, so numbering starts at 1.
 #
 # A few blocks in the docs are fragments rather than complete form.yml files
-# (an alternative "options:" list, script/submit sections, the header section,
-# and an ERB conditional). Those are wrapped into complete samples below and
+# (an alternative "options:" list, the header section, and an ERB conditional). Those are wrapped into complete samples below and
 # keep the position number of their original block.
 
 require 'cgi'
@@ -70,40 +69,7 @@ replaced = base.sub(/^    options:\n      - \[ Fugaku.*\n      - \[ Tsubame.*\n/
 raise "#{sample_name(frag)} synthesis failed (docs changed?)" if replaced == base
 write_sample(sample_name(frag), replaced)
 
-# 3. overwrite_warning section: script/submit fragments, wrapped with a form.
-script_frag = find(samples, "overwrite_warning", 1)
-submit_frag = find(samples, "overwrite_warning", 2)
-raise "unexpected overwrite_warning fragments" unless
-  script_frag[:text].start_with?("script:") && submit_frag[:text].start_with?("submit:")
-
-write_sample(sample_name(script_frag), <<~YML)
-  form:
-    comment:
-      widget: text
-      label: Comment
-      value: test
-
-  #{script_frag[:text].chomp}
-      #!/bin/bash
-      #comment=\#{comment}
-YML
-
-write_sample(sample_name(submit_frag), <<~YML)
-  form:
-    comment:
-      widget: text
-      label: Comment
-      value: test
-
-  script: |
-    #!/bin/bash
-    #comment=\#{comment}
-
-  #{submit_frag[:text].chomp}
-      sbatch \#{OC_SCRIPT_LOCATION}/\#{OC_SCRIPT_NAME}
-YML
-
-# 4. header section, 1st block: a custom header, wrapped with a form.
+# 3. header section, 1st block: a custom header, wrapped with a form.
 header_frag = find(samples, "header", 1)
 raise "unexpected header fragment" unless header_frag[:text].start_with?("header:")
 write_sample(sample_name(header_frag), <<~YML)
@@ -119,7 +85,7 @@ write_sample(sample_name(header_frag), <<~YML)
     #comment=\#{comment}
 YML
 
-# 5. header section, 2nd block: an ERB conditional form entry.
+# 4. header section, 2nd block: an ERB conditional form entry.
 #    Indent it into the form section (run_tests.rb renders with
 #    @OC_DIR_NAME == "Slurm", so the branch is taken).
 erb_frag = find(samples, "header", 2)

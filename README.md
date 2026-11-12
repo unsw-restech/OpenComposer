@@ -15,6 +15,10 @@ Both are optional. Unset, the page looks as it does upstream.
 | `platform_name` | Shown as text at the left of the navbar, and in the tab title, as `<form> \| <platform_name>` in place of `<form> \| Open Composer` | `IRIS` |
 | `catalogue_url` | Adds a **Catalogue** link to the navbar, opening the platform's catalogue in a new tab | `https://docs.restech.unsw.edu.au/iris/` |
 
+### Field-owned lines
+
+Changing a widget rewrites only the lines of the script and submit panes that hold its variables, so a user's edits to every other line are kept. A line holding a widget's variable stays that widget's even once edited, and changing the widget rewrites it. Upstream regenerates the whole pane, behind an `overwrite_warning` modal ("Discard and continue"); the fork drops that modal and the setting. The pane's record of which line came from which template line, and so which widgets it holds, is described at `ocForm.panes` in `public/form.js`.
+
 ### Text contrast
 
 Text on the navbar, its dropdown menus, the footer, the home page's category headings and the description banners of the form and history pages is black or white, whichever contrasts more with the background colour the config sets for it (WCAG relative luminance). Upstream hard-codes white, which is unreadable on a light colour such as Katana OnDemand's yellow. The rule reads colours written as `#RGB`, `#RRGGBB` (either with alpha) or `rgb()`; any other colour keeps white text. Upstream's default colours are dark, so they still get white.
