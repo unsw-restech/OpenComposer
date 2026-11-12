@@ -809,7 +809,7 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
 // shows came from, so that changing a field rewrites only that field's lines:
 //
 //   ocForm.panes[name].segments  one per template line, in template order:
-//                                {keys: [field ids the line holds], lines: [rendered text]}
+//                                {keys: [field ids the line holds], fixed, lines: [rendered text]}
 //   ocForm.panes[name].owners    one per pane line: the index of its segment,
 //                                or null for a line the researcher wrote
 //
@@ -818,11 +818,17 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
 ocForm.panes = {};
 
 // Start a template line's segment in segments and return its lines, for the
-// generated updateScriptContents() and updateSubmitContents() to fill.
-ocForm.templateLine = function(segments, keys) {
-  const segment = { keys: keys, lines: [] };
+// generated updateScriptContents() and updateSubmitContents() to fill. A
+// fixed segment is locked though it holds no field.
+ocForm.templateLine = function(segments, keys, fixed = false) {
+  const segment = { keys: keys, fixed: fixed, lines: [] };
   segments.push(segment);
   return segment.lines;
+};
+
+// Whether a segment's lines are locked: it holds a field, or the form fixes it.
+ocForm.segmentLocked = function(segment) {
+  return segment.fixed || segment.keys.length > 0;
 };
 
 // The lines of a pane's text; an empty pane has none.
@@ -882,6 +888,7 @@ ocForm.initPane = function(name, area, render, text = null) {
     pane.owners = ocForm.matchOwners(segments, ocForm.paneLines(text));
   }
   pane.text = area.value;
+  ocForm.watchLockedLines(name);
 };
 
 // Keep a pane's record in step with an edit the researcher made in it. The
@@ -925,11 +932,30 @@ ocForm.paneEdited = function(name) {
     if (keepsTail) owners[added] = ownerOf(last);
   }
 
-  pane.owners = pane.owners.slice(0, first).concat(owners, pane.owners.slice(last + 1));
-  if (pane.owners.length !== ocForm.paneLines(after).length) {
-    pane.owners = ocForm.matchOwners(pane.segments, ocForm.paneLines(after));
+  const lines = ocForm.paneLines(after);
+  owners = pane.owners.slice(0, first).concat(owners, pane.owners.slice(last + 1));
+  if (owners.length !== lines.length) {
+    owners = ocForm.matchOwners(pane.segments, lines);
   }
+
+  // An edit that would change, join, split or remove a locked line is undone.
+  const lockedLines = (owners, lines) => owners.flatMap((owner, n) =>
+    owner !== null && ocForm.segmentLocked(pane.segments[owner]) ? [[owner, lines[n]]] : []);
+  if (JSON.stringify(lockedLines(owners, lines)) !==
+      JSON.stringify(lockedLines(pane.owners, ocForm.paneLines(before)))) {
+    pane.area.value = before;
+    if (pane.selection) pane.area.setSelectionRange(...pane.selection);
+    return;
+  }
+
+  pane.owners = owners;
   pane.text = after;
+};
+
+// Remember where the caret was before an edit, to put it back if the edit is undone.
+ocForm.paneEditing = function(name) {
+  const pane = ocForm.panes[name];
+  if (pane) pane.selection = [pane.area.selectionStart, pane.area.selectionEnd, pane.area.selectionDirection];
 };
 
 // Render a pane's template again with the form's values, rewriting only the
@@ -977,6 +1003,105 @@ ocForm.lineSegment = function(name, n) {
   const pane = ocForm.panes[name];
   const owner = pane ? pane.owners[n] : null;
   return owner === null || owner === undefined ? null : pane.segments[owner];
+};
+
+// Locked lines.
+//
+// A pane line is locked when its segment is (ocForm.segmentLocked): it holds
+// a field, or the form fixes it. A researcher's edit that would change, join,
+// split or remove a locked line is undone (ocForm.paneEdited); lines can still
+// be added before and after one. Changing a field rewrites its lines as before.
+
+// Why the nth line of a pane is locked, as its hover text, or null for a line
+// that is not.
+ocForm.lineLock = function(name, n) {
+  const segment = ocForm.lineSegment(name, n);
+  if (segment === null || !ocForm.segmentLocked(segment)) return null;
+  if (segment.keys.length === 0) return "Fixed by the form";
+
+  const labels = [...new Set(segment.keys.map(ocForm.fieldLabel))];
+  const list = labels.length === 1 ? labels[0]
+             : labels.slice(0, -1).join(', ') + ' and ' + labels[labels.length - 1];
+  return `Set by ${list}`;
+};
+
+// The number of the locked line of a pane under the mouse event's pointer,
+// or null. The pane's text is transparent over its highlighted copy, so the
+// pointer is matched to the shaded lines of the copy.
+ocForm.lockedLineAt = function(name, event) {
+  const pane = ocForm.panes[name];
+  const highlight = pane ? document.getElementById(`${pane.area.id}_highlight`) : null;
+  if (!highlight) return null;
+
+  for (const line of highlight.querySelectorAll('.oc-locked-line')) {
+    const box = line.getBoundingClientRect();
+    if (event.clientY >= box.top && event.clientY < box.bottom) return Number(line.dataset.line);
+  }
+  return null;
+};
+
+// Show a pane's locked lines' hover text as the mouse moves over them.
+ocForm.watchLockedLines = function(name) {
+  const area = ocForm.panes[name].area;
+  area.addEventListener('mousemove', (event) => {
+    const n = ocForm.lockedLineAt(name, event);
+    area.title = n === null ? '' : ocForm.lineLock(name, n) ?? '';
+  });
+
+  // Clicking a field's line focuses the first field it holds.
+  area.addEventListener('click', (event) => {
+    const n = ocForm.lockedLineAt(name, event);
+    const segment = n === null ? null : ocForm.lineSegment(name, n);
+    const field = segment && segment.keys.length > 0 ? ocForm.fieldElement(segment.keys[0]) : null;
+    if (field) field.focus();
+  });
+};
+
+// The element to focus for a field: the input with its id, else the first
+// of its inputs, as a radio or checkbox widget numbers them.
+ocForm.fieldElement = function(key) {
+  const own = document.getElementById(key);
+  if (own && own.matches('input, select, textarea, button')) return own;
+  return document.querySelector(`[name="${key}"], [name="${key}[]"], [id^="${key}_"]:is(input, select, textarea)`);
+};
+
+// The label a field shows, without its required mark; a field written key_n
+// takes its own label if it has one, else its widget's.
+ocForm.fieldLabel = function(key) {
+  const base = key.replace(/_\d+$/, '');
+  for (const id of [key, base]) {
+    const label = document.getElementById(`label_${id}`);
+    const text = label ? label.textContent.trim().replace(/\*$/, '') : '';
+    if (text !== '') return text;
+  }
+  return key;
+};
+
+// Split highlighted HTML into one string per line, closing the elements open
+// at the end of each line and opening them again on the next, so that every
+// line is whole HTML.
+ocForm.highlightedLines = function(html) {
+  const lines = [];
+  const open = [];
+  let line = '';
+  for (const [piece, tag] of html.matchAll(/(<[^>]*>)|[^<]+/g)) {
+    if (tag) {
+      if (tag.startsWith('</')) open.pop();
+      else if (!tag.endsWith('/>')) open.push(tag);
+      line += tag;
+      continue;
+    }
+    const parts = piece.split('\n');
+    parts.forEach((part, i) => {
+      if (i > 0) {
+        lines.push(line + open.map(t => `</${t.match(/^<(\w+)/)[1]}>`).reverse().join(''));
+        line = open.join('');
+      }
+      line += part;
+    });
+  }
+  lines.push(line);
+  return lines;
 };
 
 // The numbers of the pane lines that hold the field key.

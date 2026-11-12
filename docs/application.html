@@ -780,7 +780,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
       <p>
         Users can edit the <code>script</code> and <code>submit</code> sections after they are generated.
         Changing a widget afterwards rewrites only the lines that hold that widget's variables (and those of any widget it changes); every other line, edited or not, is kept.
-        A line that holds a widget's variable belongs to that widget even after it is edited, so changing the widget replaces the edit.
+        A line that holds a widget's variable is locked: it is shaded, an edit that would change it is undone, hovering it shows "Set by" and the widget's label, and clicking it focuses the widget. Lines can still be added before and after it.
         The <code>overwrite_warning</code> setting of earlier versions is no longer read.
       </p>
       <h2 id="check">6. Check section</h2>
