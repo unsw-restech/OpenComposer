@@ -166,8 +166,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
-                "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
+        html << "oninput=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
       else
         html << "style=\"background-color: #{@conf["non_script_color"]};\""
@@ -249,13 +248,15 @@ helpers do
   end
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
+  # Each template line renders into its own segment of selectedValues, which
+  # records the fields it holds (ocForm.templateLine in public/form.js).
   def output_script_js(form, line, app_name, dir_name)
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
     line = escape_js_string(line)
 
     matches = line.scan(/\#\{.+?\}/)
-    return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
+    return "  ocForm.templateLine(selectedValues, []).push(\'#{line}\');\n" if matches.empty?
 
     keys = matches.flat_map do |str|
       inner = str[2..-2] # "#{time_1}" -> "time_1"
@@ -338,9 +339,9 @@ helpers do
       can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
       separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+      return "  ocForm.showLine(ocForm.templateLine(selectedValues, #{keys_array}), '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
     else
-      return "  selectedValues.push('#{line}');\n"
+      return "  ocForm.templateLine(selectedValues, []).push('#{line}');\n"
     end
   end
 
@@ -360,8 +361,7 @@ helpers do
              'submit'
            end
     if type
-      html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
-              "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
+      html << "onchange=\"ocForm.updateArea('#{type}', '#{key}')\""
       html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
@@ -481,7 +481,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -531,7 +531,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -575,19 +575,14 @@ helpers do
              'submit'
            end
     if type
-      html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
-      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
+      html += "oninput=\"ocForm.updateArea('#{type}', '#{key}')\""
       html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html += "style=\"background-color: #{@conf["non_script_color"]};\""
     end
     html += ">\n"
     html += "<button type=\"button\" class=\"btn btn-dark mt-0 text-nowrap\" data-bs-toggle=\"modal\" data-bs-target=\"#modal-#{key}\" tabindex=\"-1\" "
-    if type
-      html += "onclick=\"ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    else
-      html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    end
+    html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
     html += <<~HTML
     </div>
     <div class="modal" id="modal-#{key}">
@@ -659,7 +654,7 @@ helpers do
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
     onclick = if type
-                "ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')})"
+                "ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')"
               else
                 "ocForm.updatePath('#{key}')"
               end

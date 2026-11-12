@@ -1,0 +1,13 @@
+---
+# The form upstream found duplicating text on each click
+# (OpenOnDemandJP/OpenComposer#37).
+form:
+  test:
+    widget: checkbox
+    label: Test
+    options:
+      - [ "B" ]
+
+script: |
+  A
+  #{test}

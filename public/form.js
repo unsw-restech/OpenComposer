@@ -244,24 +244,11 @@ ocForm.addSelectedItem = function(id, triggerDynamic = true) {
 
     badge.addEventListener('click', (event) => {
       event.preventDefault();
-      const removeBadge = (contentType) => {
-        selectedItems.removeChild(badge);
-        ocForm.updateHiddenValues(id);
-        ocForm.checkSubmitState(id);
-        ocForm.updateArea(contentType, id);
-      };
-
-      if (!scriptOverwriteFlag && !submitOverwriteFlag) {
-        removeBadge();
-      }
-      else {
-        if (scriptOverwriteFlag) {
-          ocForm.confirmOverwrite('script', id,  () => removeBadge('script'));
-        }
-        else { // submitOverwriteFlag === true
-          ocForm.confirmOverwrite('submit', id,  () => removeBadge('submit'));
-        }
-      }
+      selectedItems.removeChild(badge);
+      ocForm.updateHiddenValues(id);
+      ocForm.checkSubmitState(id);
+      const contentType = scriptOverwriteFlag ? 'script' : submitOverwriteFlag ? 'submit' : undefined;
+      ocForm.updateArea(contentType, id);
     });
 
     selectedItems.appendChild(badge);
@@ -277,17 +264,7 @@ ocForm.addSelectedItem = function(id, triggerDynamic = true) {
   };
 
   if (selectedText.trim() !== "") {
-    const runAddBadge = () => addBadge();
-
-    if (!scriptOverwriteFlag && !submitOverwriteFlag) {
-      runAddBadge();
-    }
-    else if (scriptOverwriteFlag) {
-      ocForm.confirmOverwrite('script', id, runAddBadge);
-    }
-    else {
-      ocForm.confirmOverwrite('submit', id, runAddBadge);
-    }
+    addBadge();
   }
 };
 
@@ -822,6 +799,196 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
     selectedValues.push(line);
   }
 }
+
+// Field-owned lines.
+//
+// A pane (the script pane or the submit pane) shows a template rendered with
+// the form's values. Each template line renders as one segment, zero or more
+// pane lines (a hidden line renders none; a checkbox with no separator renders
+// one per ticked option), and the pane records which segment every line it
+// shows came from, so that changing a field rewrites only that field's lines:
+//
+//   ocForm.panes[name].segments  one per template line, in template order:
+//                                {keys: [field ids the line holds], lines: [rendered text]}
+//   ocForm.panes[name].owners    one per pane line: the index of its segment,
+//                                or null for a line the researcher wrote
+//
+// ocForm.lineSegment(name, n) and ocForm.fieldLines(name, key) read the record.
+
+ocForm.panes = {};
+
+// Start a template line's segment in segments and return its lines, for the
+// generated updateScriptContents() and updateSubmitContents() to fill.
+ocForm.templateLine = function(segments, keys) {
+  const segment = { keys: keys, lines: [] };
+  segments.push(segment);
+  return segment.lines;
+};
+
+// The lines of a pane's text; an empty pane has none.
+ocForm.paneLines = function(text) {
+  return text === "" ? [] : text.split('\n');
+};
+
+// Each line of segments, with the index of its segment.
+ocForm.renderedLines = function(segments) {
+  const lines = [];
+  segments.forEach((segment, i) => {
+    segment.lines.forEach(text => lines.push({ text: text, owner: i }));
+  });
+  return lines;
+};
+
+// Owners for lines, by matching them in order to the rendered lines of
+// segments (a longest common subsequence); a line that matches none is the
+// researcher's.
+ocForm.matchOwners = function(segments, lines) {
+  const rendered = ocForm.renderedLines(segments);
+  const n = rendered.length, m = lines.length;
+  const lcs = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      lcs[i][j] = rendered[i].text === lines[j]
+                ? lcs[i + 1][j + 1] + 1
+                : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+  }
+
+  const owners = new Array(m).fill(null);
+  for (let i = 0, j = 0; i < n && j < m;) {
+    if (rendered[i].text === lines[j]) { owners[j] = rendered[i].owner; i++; j++; }
+    else if (lcs[i + 1][j] >= lcs[i][j + 1]) { i++; }
+    else { j++; }
+  }
+  return owners;
+};
+
+// Show a pane: render(segments) fills segments from the form's values. The
+// pane shows text when given one (a cached or re-rendered script), else the
+// rendered template.
+ocForm.initPane = function(name, area, render, text = null) {
+  const segments = [];
+  render(segments);
+  const pane = { area: area, render: render, segments: segments };
+  ocForm.panes[name] = pane;
+
+  if (text === null) {
+    const rendered = ocForm.renderedLines(segments);
+    area.value = rendered.map(line => line.text).join('\n');
+    pane.owners = rendered.map(line => line.owner);
+  }
+  else {
+    area.value = text;
+    pane.owners = ocForm.matchOwners(segments, ocForm.paneLines(text));
+  }
+  pane.text = area.value;
+};
+
+// Keep a pane's record in step with an edit the researcher made in it. The
+// edit replaced one run of the old text with new text; lines outside the run
+// keep their owners. Of the lines the run touched, a line keeps the owner of
+// the old line whose text it still starts or ends with, and every other line
+// is the researcher's.
+ocForm.paneEdited = function(name) {
+  const pane = ocForm.panes[name];
+  if (!pane) return;
+
+  const before = pane.text, after = pane.area.value;
+  if (before === after) return;
+
+  let start = 0;
+  while (start < before.length && start < after.length && before[start] === after[start]) start++;
+  let end = 0;
+  while (end < before.length - start && end < after.length - start &&
+         before[before.length - 1 - end] === after[after.length - 1 - end]) end++;
+
+  const removedEnd = before.length - end;                  // the run is before[start, removedEnd)
+  const inserted   = after.slice(start, after.length - end);
+  const count      = (s) => s.split('\n').length - 1;
+  const first      = count(before.slice(0, start));        // the old lines the run touched
+  const last       = count(before.slice(0, removedEnd));
+  const added      = count(inserted);                      // the run spans added + 1 new lines
+
+  const ownerOf = (n) => pane.owners[n] ?? null;
+  const keepsHead = start > 0 && before[start - 1] !== '\n';
+  const keepsTail = removedEnd < before.length && before[removedEnd] !== '\n';
+
+  let owners;
+  if (added === 0) {
+    owners = [keepsHead ? ownerOf(first) ?? (keepsTail ? ownerOf(last) : null)
+            : keepsTail ? ownerOf(last)
+            : first === last ? ownerOf(first) : null];
+  }
+  else {
+    owners = new Array(added + 1).fill(null);
+    if (keepsHead) owners[0] = ownerOf(first);
+    if (keepsTail) owners[added] = ownerOf(last);
+  }
+
+  pane.owners = pane.owners.slice(0, first).concat(owners, pane.owners.slice(last + 1));
+  if (pane.owners.length !== ocForm.paneLines(after).length) {
+    pane.owners = ocForm.matchOwners(pane.segments, ocForm.paneLines(after));
+  }
+  pane.text = after;
+};
+
+// Render a pane's template again with the form's values, rewriting only the
+// lines of the segments whose text changed. A segment that showed no lines
+// gets its new lines after the last line of an earlier segment.
+ocForm.rerenderPane = function(name) {
+  const pane = ocForm.panes[name];
+  if (!pane) return;
+
+  const segments = [];
+  pane.render(segments);
+  const lines  = ocForm.paneLines(pane.area.value);
+  const owners = pane.owners.slice();
+
+  segments.forEach((segment, i) => {
+    const old = pane.segments[i];
+    if (old && old.lines.join('\n') === segment.lines.join('\n') && old.lines.length === segment.lines.length) return;
+
+    const held = [];
+    owners.forEach((owner, n) => { if (owner === i) held.push(n); });
+
+    let at;
+    if (held.length > 0) {
+      at = held[0];
+      held.reverse().forEach(n => { lines.splice(n, 1); owners.splice(n, 1); });
+    }
+    else {
+      const earlier = owners.findLastIndex(owner => owner !== null && owner < i);
+      const later   = owners.findIndex(owner => owner !== null && owner > i);
+      at = earlier >= 0 ? earlier + 1 : later >= 0 ? later : lines.length;
+    }
+    lines.splice(at, 0, ...segment.lines);
+    owners.splice(at, 0, ...segment.lines.map(() => i));
+  });
+
+  pane.segments = segments;
+  pane.owners = owners;
+  pane.area.value = lines.join('\n');
+  pane.text = pane.area.value;
+};
+
+// The segment the nth line of a pane came from, as {keys, lines}, or null for
+// a line the researcher wrote.
+ocForm.lineSegment = function(name, n) {
+  const pane = ocForm.panes[name];
+  const owner = pane ? pane.owners[n] : null;
+  return owner === null || owner === undefined ? null : pane.segments[owner];
+};
+
+// The numbers of the pane lines that hold the field key.
+ocForm.fieldLines = function(name, key) {
+  const pane = ocForm.panes[name];
+  if (!pane) return [];
+  const numbers = [];
+  pane.owners.forEach((owner, n) => {
+    if (owner !== null && pane.segments[owner].keys.includes(key)) numbers.push(n);
+  });
+  return numbers;
+};
 
 // Enable a widget.
 ocForm.enableWidget = function(key, num, widget, size) {

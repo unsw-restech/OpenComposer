@@ -11,7 +11,7 @@ position in the docs, e.g. `1_number`, `21_set`). The documentation is the
 source of truth: `samples/` is
 regenerated on every run, so the tests always reflect the current docs. A few
 documentation blocks are fragments (an alternative `options:` list, the
-`script:`/`submit:` sections, the `header:` section, and an ERB conditional);
+`header:` section, and an ERB conditional);
 `extract_samples.rb` wraps those into complete samples.
 
 Each sample in `samples/` and each app in `sample_apps/` is then run through

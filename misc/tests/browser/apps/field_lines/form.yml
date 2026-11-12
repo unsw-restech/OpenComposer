@@ -1,0 +1,20 @@
+---
+form:
+  cores:
+    widget: number
+    label: Cores
+    value: 1
+    min: 1
+
+  name:
+    widget: text
+    label: Name
+    value: run
+
+check: |
+  oc_assert(@cores.to_i < 10, "Too many cores")
+
+script: |
+  #PBS -l select=1:ncpus=#{cores}
+  #PBS -N #{name}
+  echo hello
