@@ -153,11 +153,10 @@ ocForm.decorateSchedulerDirectives = function(area, highlight) {
   }).join('\n');
 };
 
-// Shade the locked lines of a pane (ocForm.lineLock in form.js). An empty
-// locked line gets a zero-width space, so that its shading shows.
-ocForm.decorateLockedLines = function(area, highlight) {
-  const name = Object.keys(ocForm.panes).find(name => ocForm.panes[name].area === area);
-  if (!name || !highlight) return;
+// Shade the locked lines of the pane name (ocForm.lineLock in form.js). An
+// empty locked line gets a zero-width space, so that its shading shows.
+ocForm.decorateLockedLines = function(name, highlight) {
+  if (!ocForm.panes[name] || !highlight) return;
 
   highlight.innerHTML = ocForm.highlightedLines(highlight.innerHTML).map((lineHtml, n) => {
     if (ocForm.lineLock(name, n) === null) return lineHtml;
@@ -175,26 +174,27 @@ ocForm.syncCaretColor = function(area, highlight) {
   }
 };
 
-// Sync a textarea content to the corresponding highlight area.
-ocForm.syncHighlight = function(area, highlight) {
+// Sync a textarea content to the corresponding highlight area; name is the
+// textarea's pane (ocForm.panes).
+ocForm.syncHighlight = function(area, highlight, name) {
   if (!area || !highlight) return;
 
   highlight.textContent = area.value;
   highlight.removeAttribute('data-highlighted');
   hljs.highlightElement(highlight);
   ocForm.decorateSchedulerDirectives(area, highlight);
-  ocForm.decorateLockedLines(area, highlight);
+  ocForm.decorateLockedLines(name, highlight);
   ocForm.syncCaretColor(area, highlight);
 };
 
 // Sync the script textarea content to the highlight area.
 ocForm.syncScriptHighlight = function() {
-  ocForm.syncHighlight(ocForm.scriptArea, ocForm.scriptHighlight);
+  ocForm.syncHighlight(ocForm.scriptArea, ocForm.scriptHighlight, 'script');
 };
 
 // Sync the submit textarea content to the highlight area.
 ocForm.syncSubmitHighlight = function() {
-  ocForm.syncHighlight(ocForm.submitArea, ocForm.submitHighlight);
+  ocForm.syncHighlight(ocForm.submitArea, ocForm.submitHighlight, 'submit');
 };
 
 // Keep the highlight overlay visibility in sync with the textarea.
