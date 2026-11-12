@@ -788,6 +788,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
         <code>begin</code> is the first line equal to <code>begin</code>, and <code>end</code> the first line after it equal to <code>end</code>, each compared with leading and trailing whitespace stripped.
         Only the lines between them are editable (lines holding a widget's variable among them stay locked); the two marker lines and every line outside them are locked, show "Fixed by the form", and no line can be added outside them.
         The marker lines are submitted as written.
+        If no line matches <code>begin</code>, or no line after it matches <code>end</code>, every line of the <code>script</code> section is locked.
       </p>
       <pre>form:
   name:

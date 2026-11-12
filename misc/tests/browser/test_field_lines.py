@@ -10,7 +10,7 @@ def pane(page: Page):
 
 
 def type_at_end(page: Page, text: str):
-    """Type into the script pane at the end of its text, as a researcher would."""
+    """Type into the script pane at the end of its text, as a user would."""
     pane(page).focus()
     page.keyboard.press("Control+End")
     page.keyboard.type(text)

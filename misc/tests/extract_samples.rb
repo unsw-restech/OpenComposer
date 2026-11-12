@@ -8,8 +8,9 @@
 # and is not extracted, so numbering starts at 1.
 #
 # A few blocks in the docs are fragments rather than complete form.yml files
-# (an alternative "options:" list, the header section, and an ERB conditional). Those are wrapped into complete samples below and
-# keep the position number of their original block.
+# (an alternative "options:" list, the header section, and an ERB
+# conditional). Those are wrapped into complete samples below and keep the
+# position number of their original block.
 
 require 'cgi'
 require 'fileutils'

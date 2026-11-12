@@ -21,7 +21,7 @@ Changing a widget rewrites only the lines of the script and submit panes that ho
 
 ### Locked lines
 
-A line holding a widget's variable is locked, so the form, `check:` and the submitted script always agree: it is shaded, and an edit that would change, join, split or remove it is undone, while lines can still be added before and after it. Hovering a locked line shows "Set by" and the widget's label (`Set by Hours and Minutes` for a line holding two), and clicking it focuses the widget. Upstream lets these lines be edited; a reverse update from the edited line to the widget (upstream PR #37's second feature) is not offered, since a line such as `#{time_1}:#{zeropadding(time_2, 2)}` can't always be read back. A segment can also be locked with no widget, `fixed` in `ocForm.templateLine` in `public/form.js`, and then shows "Fixed by the form".
+A line holding a widget's variable is locked, so the form, `check:` and the submitted script always agree: it is shaded, and an edit that would change, join, split or remove it is undone, while lines can still be added before and after it. Hovering a locked line shows "Set by" and the widget's label (`Set by Hours and Minutes` for a line holding two), and clicking it focuses the widget. Upstream lets these lines be edited; a reverse update from the edited line to the widget (upstream PR #37's second feature) is not offered, since a line such as `#{time_1}:#{zeropadding(time_2, 2)}` can't always be read back. A segment can also be locked with no widget, the role `'fixed'` in `ocForm.templateLine` in `public/form.js`, and then shows "Fixed by the form".
 
 ### Editable region
 
@@ -33,7 +33,7 @@ editable_region:
   end: "IRIS_RUN_PY_END"
 ```
 
-`begin` is the first template line equal to `begin:` and `end` the first line after it equal to `end:`, each compared with leading and trailing whitespace stripped. Only the lines strictly between them are editable, and lines holding a widget among them stay locked. The two marker lines and every line outside them are locked, showing "Fixed by the form", and no line can be added outside them. Nothing is added to the script, so the marker lines are submitted as written. A form without the key, or whose markers match no lines, locks only its widget lines. The region applies to the script pane, not the submit pane.
+`begin` is the first template line equal to `begin:` and `end` the first line after it equal to `end:`, each compared with leading and trailing whitespace stripped. Only the lines strictly between them are editable, and lines holding a widget among them stay locked. The two marker lines and every line outside them are locked, showing "Fixed by the form", and no line can be added outside them. Nothing is added to the script, so the marker lines are submitted as written. A form without the key locks only its widget lines. A form whose markers match no lines, with no `begin` line or no `end` line after it, locks every line of the script pane, so a mistyped marker can't leave the whole script editable. The region applies to the script pane, not the submit pane.
 
 ### Text contrast
 

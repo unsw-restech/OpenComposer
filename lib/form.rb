@@ -252,28 +252,31 @@ helpers do
   # or nil for a form that names none. begin is the first line equal to
   # begin:, end the first line after it equal to end:, both compared with
   # leading and trailing whitespace stripped. A region whose markers match no
-  # lines is nil too.
+  # lines (no begin, or no end after it) is empty, so every line is locked
+  # rather than none.
   def editable_region(region, lines)
-    return nil unless region.is_a?(Hash) && region["begin"] && region["end"]
+    return nil if region.nil?
+    return 0...0 unless region.is_a?(Hash) && region["begin"] && region["end"]
 
     stripped = lines.map(&:strip)
     first = stripped.index(region["begin"].to_s.strip)
-    return nil if first.nil?
+    return 0...0 if first.nil?
 
     last = stripped[(first + 1)..].index(region["end"].to_s.strip)
-    return nil if last.nil?
+    return 0...0 if last.nil?
 
     (first + 1)...(first + 1 + last)
   end
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
   # Each template line renders into its own segment of selectedValues, which
-  # records the fields it holds (ocForm.templateLine in public/form.js). A
-  # fixed line is locked though it holds no field, as every line outside an
-  # editable region is, and the line that opens the region lets lines be
-  # added after it.
-  def output_script_js(form, line, app_name, dir_name, fixed: false, opens_region: false)
-    flags = fixed ? ", true#{opens_region ? ', true' : ''}" : ""
+  # records the fields it holds (ocForm.templateLine in public/form.js). role
+  # is templateLine's: nil for its default, "fixed" for a line locked though
+  # it holds no field, as every line outside an editable region is, or
+  # "regionBegin" for the fixed line that opens the region, which lets lines
+  # be added after it.
+  def output_script_js(form, line, app_name, dir_name, role: nil)
+    flags = role ? ", '#{role}'" : ""
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
     line = escape_js_string(line)
@@ -1073,9 +1076,11 @@ HTML
       lines  = script_content.split("\n")
       region = editable_region(body["editable_region"], lines)
       lines.each_with_index do |line, n|
-        fixed = !region.nil? && !region.cover?(n)
-        @js["script"] += output_script_js(obj, line, app_name, dir_name,
-                                          fixed: fixed, opens_region: !region.nil? && n == region.begin - 1)
+        role = if region.nil? || region.cover?(n) then nil
+               elsif n == region.begin - 1 then "regionBegin"
+               else "fixed"
+               end
+        @js["script"] += output_script_js(obj, line, app_name, dir_name, role: role)
       end
     end
 

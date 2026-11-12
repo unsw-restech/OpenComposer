@@ -1,0 +1,16 @@
+form:
+  name:
+    widget: text
+    label: Name
+    value: run
+
+# No line of the script is the begin marker.
+editable_region:
+  begin: "cat > run.py <<'EOF'"
+  end: "END"
+
+script: |
+  cat > run.py <<'END'
+  print("#{name}")
+  END
+  python run.py

@@ -809,21 +809,23 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
 // shows came from, so that changing a field rewrites only that field's lines:
 //
 //   ocForm.panes[name].segments  one per template line, in template order:
-//                                {keys: [field ids the line holds], fixed, lines: [rendered text]}
+//                                {keys: [field ids the line holds], fixed, opensRegion,
+//                                 lines: [rendered text]}
 //   ocForm.panes[name].owners    one per pane line: the index of its segment,
-//                                or null for a line the researcher wrote
+//                                or null for a line the user wrote
 //
-// ocForm.lineSegment(name, n) and ocForm.fieldLines(name, key) read the record.
+// ocForm.lineSegment(name, n) reads the record.
 
 ocForm.panes = {};
 
 // Start a template line's segment in segments and return its lines, for the
-// generated updateScriptContents() and updateSubmitContents() to fill. A
-// fixed segment is locked though it holds no field. A form with an editable
-// region fixes every line outside it, the two marker lines included, and the
-// marker that opens it is the one fixed segment a line may be added after.
-ocForm.templateLine = function(segments, keys, fixed = false, opensRegion = false) {
-  const segment = { keys: keys, fixed: fixed, opensRegion: opensRegion, lines: [] };
+// generated updateScriptContents() and updateSubmitContents() to fill. role
+// is 'editable' (the default), 'fixed' or 'regionBegin'. A fixed segment is
+// locked though it holds no field. A form with an editable region fixes
+// every line outside it, the two marker lines included, and the marker that
+// opens it, 'regionBegin', is the one fixed segment a line may be added after.
+ocForm.templateLine = function(segments, keys, role = 'editable') {
+  const segment = { keys: keys, fixed: role !== 'editable', opensRegion: role === 'regionBegin', lines: [] };
   segments.push(segment);
   return segment.lines;
 };
@@ -849,7 +851,7 @@ ocForm.renderedLines = function(segments) {
 
 // Owners for lines, by matching them in order to the rendered lines of
 // segments (a longest common subsequence); a line that matches none is the
-// researcher's.
+// user's.
 ocForm.matchOwners = function(segments, lines) {
   const rendered = ocForm.renderedLines(segments);
   const n = rendered.length, m = lines.length;
@@ -893,11 +895,11 @@ ocForm.initPane = function(name, area, render, text = null) {
   ocForm.watchLockedLines(name);
 };
 
-// Keep a pane's record in step with an edit the researcher made in it. The
-// edit replaced one run of the old text with new text; lines outside the run
-// keep their owners. Of the lines the run touched, a line keeps the owner of
-// the old line whose text it still starts or ends with, and every other line
-// is the researcher's.
+// Keep a pane's record in step with an edit the user made in it, undoing an
+// edit ocForm.editAllowed refuses. The edit replaced one run of the old text
+// with new text; lines outside the run keep their owners. Of the lines the
+// run touched, a line keeps the owner of the old line whose text it still
+// starts or ends with, and every other line is the user's.
 ocForm.paneEdited = function(name) {
   const pane = ocForm.panes[name];
   if (!pane) return;
@@ -940,15 +942,7 @@ ocForm.paneEdited = function(name) {
     owners = ocForm.matchOwners(pane.segments, lines);
   }
 
-  // An edit that would change, join, split or remove a locked line, or add or
-  // change a line outside the form's editable region, is undone.
-  const lockedLines = (owners, lines) => owners.flatMap((owner, n) =>
-    owner !== null && ocForm.segmentLocked(pane.segments[owner]) ? [[owner, lines[n]]] : []);
-  const outsideLines = ocForm.linesOutsideRegion(pane.segments, pane.owners, ocForm.paneLines(before));
-  const isSubsequence = (some, all) => { let i = 0; all.forEach(x => { if (x === some[i]) i++; }); return i === some.length; };
-  if (JSON.stringify(lockedLines(owners, lines)) !==
-      JSON.stringify(lockedLines(pane.owners, ocForm.paneLines(before))) ||
-      !isSubsequence(ocForm.linesOutsideRegion(pane.segments, owners, lines), outsideLines)) {
+  if (!ocForm.editAllowed(pane.segments, pane.owners, ocForm.paneLines(before), owners, lines)) {
     pane.area.value = before;
     if (pane.selection) pane.area.setSelectionRange(...pane.selection);
     return;
@@ -958,8 +952,27 @@ ocForm.paneEdited = function(name) {
   pane.text = after;
 };
 
-// The researcher's lines of a pane that lie outside the form's editable
-// region, given the pane's lines and their owners. A researcher's line lies
+// Whether an edit that took a pane's lines from oldLines, with their owners
+// oldOwners, to newLines, with newOwners, may stand. It may not change, join,
+// split or remove a locked line, or add or change a line outside the form's
+// editable region.
+ocForm.editAllowed = function(segments, oldOwners, oldLines, newOwners, newLines) {
+  const lockedLines = (owners, lines) => owners.flatMap((owner, n) =>
+    owner !== null && ocForm.segmentLocked(segments[owner]) ? [[owner, lines[n]]] : []);
+  if (JSON.stringify(lockedLines(newOwners, newLines)) !== JSON.stringify(lockedLines(oldOwners, oldLines))) {
+    return false;
+  }
+
+  // The new lines outside the region must be some of the old ones, in order.
+  const oldOutside = ocForm.linesOutsideRegion(segments, oldOwners, oldLines);
+  const newOutside = ocForm.linesOutsideRegion(segments, newOwners, newLines);
+  let i = 0;
+  oldOutside.forEach(line => { if (line === newOutside[i]) i++; });
+  return i === newOutside.length;
+};
+
+// The user's lines of a pane that lie outside the form's editable
+// region, given the pane's lines and their owners. A user's line lies
 // between the segments of the template lines shown before and after it, and
 // it is inside the region when a line may go between some two of the
 // segments in that gap: after a segment that is not fixed, or after the one
@@ -1027,7 +1040,7 @@ ocForm.rerenderPane = function(name) {
 };
 
 // The segment the nth line of a pane came from, as {keys, lines}, or null for
-// a line the researcher wrote.
+// a line the user wrote.
 ocForm.lineSegment = function(name, n) {
   const pane = ocForm.panes[name];
   const owner = pane ? pane.owners[n] : null;
@@ -1037,7 +1050,7 @@ ocForm.lineSegment = function(name, n) {
 // Locked lines.
 //
 // A pane line is locked when its segment is (ocForm.segmentLocked): it holds
-// a field, or the form fixes it. A researcher's edit that would change, join,
+// a field, or the form fixes it. A user's edit that would change, join,
 // split or remove a locked line is undone (ocForm.paneEdited); lines can still
 // be added before and after one. Changing a field rewrites its lines as before.
 
@@ -1131,17 +1144,6 @@ ocForm.highlightedLines = function(html) {
   }
   lines.push(line);
   return lines;
-};
-
-// The numbers of the pane lines that hold the field key.
-ocForm.fieldLines = function(name, key) {
-  const pane = ocForm.panes[name];
-  if (!pane) return [];
-  const numbers = [];
-  pane.owners.forEach((owner, n) => {
-    if (owner !== null && pane.segments[owner].keys.includes(key)) numbers.push(n);
-  });
-  return numbers;
 };
 
 // Enable a widget.

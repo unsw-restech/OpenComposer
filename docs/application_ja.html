@@ -732,6 +732,7 @@ script:
         <code>begin</code>は<code>begin</code>と一致する最初の行、<code>end</code>はその後で<code>end</code>と一致する最初の行で、どちらも前後の空白を除いて比較します。
         その間の行だけが編集でき（ただしウィジットの変数を含む行はロックされたままです）、2つのマーカー行とその外側の行はすべてロックされ、「Fixed by the form」と表示され、外側に行を追加することはできません。
         マーカー行は書いたとおりに投入されます。
+        <code>begin</code>と一致する行がない場合、またはその後に<code>end</code>と一致する行がない場合は、<code>script</code>セクションのすべての行がロックされます。
       </p>
       <pre>form:
   name:

@@ -1,4 +1,4 @@
-"""One Submit bar stays on screen while the researcher scrolls a long form."""
+"""One Submit bar stays on screen while the user scrolls a long form."""
 
 import pytest
 from playwright.sync_api import Page, expect
