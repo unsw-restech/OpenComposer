@@ -17,7 +17,11 @@ Both are optional. Unset, the page looks as it does upstream.
 
 ### Field-owned lines
 
-Changing a widget rewrites only the lines of the script and submit panes that hold its variables, so a user's edits to every other line are kept. A line holding a widget's variable stays that widget's even once edited, and changing the widget rewrites it. Upstream regenerates the whole pane, behind an `overwrite_warning` modal ("Discard and continue"); the fork drops that modal and the setting. The pane's record of which line came from which template line, and so which widgets it holds, is described at `ocForm.panes` in `public/form.js`.
+Changing a widget rewrites only the lines of the script and submit panes that hold its variables, so a user's edits to every other line are kept. Upstream regenerates the whole pane, behind an `overwrite_warning` modal ("Discard and continue"); the fork drops that modal and the setting. The pane's record of which line came from which template line, and so which widgets it holds, is described at `ocForm.panes` in `public/form.js`.
+
+### Locked lines
+
+A line holding a widget's variable is locked, so the form, `check:` and the submitted script always agree: it is shaded, and an edit that would change, join, split or remove it is undone, while lines can still be added before and after it. Hovering a locked line shows "Set by" and the widget's label (`Set by Hours and Minutes` for a line holding two), and clicking it focuses the widget. Upstream lets these lines be edited; a reverse update from the edited line to the widget (upstream PR #37's second feature) is not offered, since a line such as `#{time_1}:#{zeropadding(time_2, 2)}` can't always be read back. A segment can also be locked with no widget, `fixed` in `ocForm.templateLine` in `public/form.js`, and then shows "Fixed by the form".
 
 ### Text contrast
 

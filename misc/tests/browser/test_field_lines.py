@@ -59,19 +59,3 @@ def test_ticking_a_checkbox_beside_an_edit_adds_its_text_once(serve, page: Page)
     expect(pane(page)).to_have_value("A\nC")
     box.click()
     expect(pane(page)).to_have_value("A\nB\nC")
-
-
-def test_an_edited_field_line_is_rewritten_by_its_field_only(serve, page: Page):
-    page.goto(serve({}) + FORM)
-    type_at_end(page, "\necho mine")
-    # Edit the Name line by hand: it stays edited while another field changes.
-    pane(page).evaluate("a => { const at = a.value.indexOf(' run') + 4; a.setSelectionRange(at, at); }")
-    page.keyboard.type("x")
-    page.locator("#cores").fill("2")
-    expect(pane(page)).to_have_value(
-        "#PBS -l select=1:ncpus=2\n#PBS -N runx\necho hello\necho mine"
-    )
-    page.locator("#name").fill("job")
-    expect(pane(page)).to_have_value(
-        "#PBS -l select=1:ncpus=2\n#PBS -N job\necho hello\necho mine"
-    )

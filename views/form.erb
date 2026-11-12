@@ -62,7 +62,7 @@
       <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
       <div id="<%= OC_SCRIPT_CONTENT %>_editor" class="position-relative mt-1 mb-3 flex-grow-1">
         <pre id="<%= OC_SCRIPT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= OC_SCRIPT_CONTENT %>_highlight" class="d-block"></code></pre>
-        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" oninput="ocForm.paneEdited('script'); ocForm.updateHeight(ocForm.scriptArea); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
+        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" onbeforeinput="ocForm.paneEditing('script')" oninput="ocForm.paneEdited('script'); ocForm.updateHeight(ocForm.scriptArea); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
       </div>
       <div class="modal fade" id="modal-<%= SUBMIT_CONFIRM %>" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
@@ -73,7 +73,7 @@
                   <div class="col">
                     <div id="<%= SUBMIT_CONTENT %>_editor" class="position-relative w-100">
                       <pre id="<%= SUBMIT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= SUBMIT_CONTENT %>_highlight" class="d-block"></code></pre>
-                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" oninput="ocForm.paneEdited('submit'); ocForm.updateHeight(ocForm.submitArea); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
+                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" onbeforeinput="ocForm.paneEditing('submit')" oninput="ocForm.paneEdited('submit'); ocForm.updateHeight(ocForm.submitArea); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
                     </div>
                   </div>
                 </div>
@@ -143,13 +143,25 @@ ocForm.decorateSchedulerDirectives = function(area, highlight) {
   if (!area || !highlight) return;
   const directivePattern = /^(?:#(?:PJM|SBATCH|PBS)\b|#\$)/;
   const sourceLines = area.value.split('\n');
-  const highlightedLines = highlight.innerHTML.split('\n');
+  const highlightedLines = ocForm.highlightedLines(highlight.innerHTML);
 
   highlight.innerHTML = highlightedLines.map((lineHtml, index) => {
     const sourceLine = sourceLines[index] || '';
     if (!directivePattern.test(sourceLine.trimStart())) return lineHtml;
 
     return `<span class="oc-scheduler-directive">${lineHtml}</span>`;
+  }).join('\n');
+};
+
+// Shade the locked lines of a pane (ocForm.lineLock in form.js). An empty
+// locked line gets a zero-width space, so that its shading shows.
+ocForm.decorateLockedLines = function(area, highlight) {
+  const name = Object.keys(ocForm.panes).find(name => ocForm.panes[name].area === area);
+  if (!name || !highlight) return;
+
+  highlight.innerHTML = ocForm.highlightedLines(highlight.innerHTML).map((lineHtml, n) => {
+    if (ocForm.lineLock(name, n) === null) return lineHtml;
+    return `<span class="oc-locked-line" data-line="${n}">${lineHtml || '&#8203;'}</span>`;
   }).join('\n');
 };
 
@@ -171,6 +183,7 @@ ocForm.syncHighlight = function(area, highlight) {
   highlight.removeAttribute('data-highlighted');
   hljs.highlightElement(highlight);
   ocForm.decorateSchedulerDirectives(area, highlight);
+  ocForm.decorateLockedLines(area, highlight);
   ocForm.syncCaretColor(area, highlight);
 };
 
