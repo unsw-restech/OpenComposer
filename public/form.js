@@ -819,9 +819,11 @@ ocForm.panes = {};
 
 // Start a template line's segment in segments and return its lines, for the
 // generated updateScriptContents() and updateSubmitContents() to fill. A
-// fixed segment is locked though it holds no field.
-ocForm.templateLine = function(segments, keys, fixed = false) {
-  const segment = { keys: keys, fixed: fixed, lines: [] };
+// fixed segment is locked though it holds no field. A form with an editable
+// region fixes every line outside it, the two marker lines included, and the
+// marker that opens it is the one fixed segment a line may be added after.
+ocForm.templateLine = function(segments, keys, fixed = false, opensRegion = false) {
+  const segment = { keys: keys, fixed: fixed, opensRegion: opensRegion, lines: [] };
   segments.push(segment);
   return segment.lines;
 };
@@ -938,11 +940,15 @@ ocForm.paneEdited = function(name) {
     owners = ocForm.matchOwners(pane.segments, lines);
   }
 
-  // An edit that would change, join, split or remove a locked line is undone.
+  // An edit that would change, join, split or remove a locked line, or add or
+  // change a line outside the form's editable region, is undone.
   const lockedLines = (owners, lines) => owners.flatMap((owner, n) =>
     owner !== null && ocForm.segmentLocked(pane.segments[owner]) ? [[owner, lines[n]]] : []);
+  const outsideLines = ocForm.linesOutsideRegion(pane.segments, pane.owners, ocForm.paneLines(before));
+  const isSubsequence = (some, all) => { let i = 0; all.forEach(x => { if (x === some[i]) i++; }); return i === some.length; };
   if (JSON.stringify(lockedLines(owners, lines)) !==
-      JSON.stringify(lockedLines(pane.owners, ocForm.paneLines(before)))) {
+      JSON.stringify(lockedLines(pane.owners, ocForm.paneLines(before))) ||
+      !isSubsequence(ocForm.linesOutsideRegion(pane.segments, owners, lines), outsideLines)) {
     pane.area.value = before;
     if (pane.selection) pane.area.setSelectionRange(...pane.selection);
     return;
@@ -950,6 +956,29 @@ ocForm.paneEdited = function(name) {
 
   pane.owners = owners;
   pane.text = after;
+};
+
+// The researcher's lines of a pane that lie outside the form's editable
+// region, given the pane's lines and their owners. A researcher's line lies
+// between the segments of the template lines shown before and after it, and
+// it is inside the region when a line may go between some two of the
+// segments in that gap: after a segment that is not fixed, or after the one
+// that opens the region. A form with no region fixes no segment, so every
+// line is inside.
+ocForm.linesOutsideRegion = function(segments, owners, lines) {
+  const mayFollow = (i) => i < 0 ? !(segments[0] && segments[0].fixed)
+                                 : !segments[i].fixed || segments[i].opensRegion;
+  const outside = [];
+  let previous = -1;
+  owners.forEach((owner, n) => {
+    if (owner !== null) { previous = owner; return; }
+    let next = owners.slice(n).find(o => o !== null);
+    if (next === undefined) next = segments.length;
+    let inside = false;
+    for (let i = previous; i < next && !inside; i++) inside = mayFollow(i);
+    if (!inside) outside.push(lines[n]);
+  });
+  return outside;
 };
 
 // Remember where the caret was before an edit, to put it back if the edit is undone.

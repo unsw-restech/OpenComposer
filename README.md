@@ -23,6 +23,18 @@ Changing a widget rewrites only the lines of the script and submit panes that ho
 
 A line holding a widget's variable is locked, so the form, `check:` and the submitted script always agree: it is shaded, and an edit that would change, join, split or remove it is undone, while lines can still be added before and after it. Hovering a locked line shows "Set by" and the widget's label (`Set by Hours and Minutes` for a line holding two), and clicking it focuses the widget. Upstream lets these lines be edited; a reverse update from the edited line to the widget (upstream PR #37's second feature) is not offered, since a line such as `#{time_1}:#{zeropadding(time_2, 2)}` can't always be read back. A segment can also be locked with no widget, `fixed` in `ocForm.templateLine` in `public/form.js`, and then shows "Fixed by the form".
 
+### Editable region
+
+A form can make only part of its `script:` editable with a top-level `editable_region:` key, beside `form:` and `script:`, naming two of the script's lines:
+
+```yaml
+editable_region:
+  begin: "cat > \"$RUN_DIR/run.py\" <<'IRIS_RUN_PY_END'"
+  end: "IRIS_RUN_PY_END"
+```
+
+`begin` is the first template line equal to `begin:` and `end` the first line after it equal to `end:`, each compared with leading and trailing whitespace stripped. Only the lines strictly between them are editable, and lines holding a widget among them stay locked. The two marker lines and every line outside them are locked, showing "Fixed by the form", and no line can be added outside them. Nothing is added to the script, so the marker lines are submitted as written. A form without the key, or whose markers match no lines, locks only its widget lines. The region applies to the script pane, not the submit pane.
+
 ### Text contrast
 
 Text on the navbar, its dropdown menus, the footer, the home page's category headings and the description banners of the form and history pages is black or white, whichever contrasts more with the background colour the config sets for it (WCAG relative luminance). Upstream hard-codes white, which is unreadable on a light colour such as Katana OnDemand's yellow. The rule reads colours written as `#RGB`, `#RRGGBB` (either with alpha) or `rgb()`; any other colour keeps white text. Upstream's default colours are dark, so they still get white.

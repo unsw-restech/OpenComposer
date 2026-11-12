@@ -1,0 +1,29 @@
+---
+form:
+  cores:
+    widget: number
+    label: Cores
+    value: 1
+    min: 1
+
+  name:
+    widget: text
+    label: Name
+    value: run
+
+check: |
+  oc_assert(@cores.to_i < 10, "Too many cores")
+
+# The markers match their lines with surrounding whitespace stripped.
+editable_region:
+  begin: "  cat > \"$RUN_DIR/run.py\" <<'END' "
+  end: "END"
+
+script: |
+  #PBS -l select=1:ncpus=#{cores}
+  RUN_DIR=/tmp/run
+  cat > "$RUN_DIR/run.py" <<'END'
+  print("hello")
+  name = "#{name}"
+  END
+  python "$RUN_DIR/run.py"

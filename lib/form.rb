@@ -247,16 +247,39 @@ helpers do
     s
   end
 
+  # The editable region a form's editable_region: names in its script lines,
+  # as the range of the line numbers strictly between its two marker lines,
+  # or nil for a form that names none. begin is the first line equal to
+  # begin:, end the first line after it equal to end:, both compared with
+  # leading and trailing whitespace stripped. A region whose markers match no
+  # lines is nil too.
+  def editable_region(region, lines)
+    return nil unless region.is_a?(Hash) && region["begin"] && region["end"]
+
+    stripped = lines.map(&:strip)
+    first = stripped.index(region["begin"].to_s.strip)
+    return nil if first.nil?
+
+    last = stripped[(first + 1)..].index(region["end"].to_s.strip)
+    return nil if last.nil?
+
+    (first + 1)...(first + 1 + last)
+  end
+
   # Output a JavaScript code based on a given yml, line in script, and matches data.
   # Each template line renders into its own segment of selectedValues, which
-  # records the fields it holds (ocForm.templateLine in public/form.js).
-  def output_script_js(form, line, app_name, dir_name)
+  # records the fields it holds (ocForm.templateLine in public/form.js). A
+  # fixed line is locked though it holds no field, as every line outside an
+  # editable region is, and the line that opens the region lets lines be
+  # added after it.
+  def output_script_js(form, line, app_name, dir_name, fixed: false, opens_region: false)
+    flags = fixed ? ", true#{opens_region ? ', true' : ''}" : ""
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
     line = escape_js_string(line)
 
     matches = line.scan(/\#\{.+?\}/)
-    return "  ocForm.templateLine(selectedValues, []).push(\'#{line}\');\n" if matches.empty?
+    return "  ocForm.templateLine(selectedValues, []#{flags}).push(\'#{line}\');\n" if matches.empty?
 
     keys = matches.flat_map do |str|
       inner = str[2..-2] # "#{time_1}" -> "time_1"
@@ -339,9 +362,9 @@ helpers do
       can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
       separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
 
-      return "  ocForm.showLine(ocForm.templateLine(selectedValues, #{keys_array}), '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+      return "  ocForm.showLine(ocForm.templateLine(selectedValues, #{keys_array}#{flags}), '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
     else
-      return "  ocForm.templateLine(selectedValues, []).push('#{line}');\n"
+      return "  ocForm.templateLine(selectedValues, []#{flags}).push('#{line}');\n"
     end
   end
 
@@ -1047,8 +1070,12 @@ HTML
 
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     if !script_content.nil?
-      script_content.split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line, app_name, dir_name)
+      lines  = script_content.split("\n")
+      region = editable_region(body["editable_region"], lines)
+      lines.each_with_index do |line, n|
+        fixed = !region.nil? && !region.cover?(n)
+        @js["script"] += output_script_js(obj, line, app_name, dir_name,
+                                          fixed: fixed, opens_region: !region.nil? && n == region.begin - 1)
       end
     end
 
