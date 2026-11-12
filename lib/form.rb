@@ -166,8 +166,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
-                "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
+        html << "oninput=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
       else
         html << "style=\"background-color: #{@conf["non_script_color"]};\""
@@ -248,14 +247,42 @@ helpers do
     s
   end
 
+  # The editable region a form's editable_region: names in its script lines,
+  # as the range of the line numbers strictly between its two marker lines,
+  # or nil for a form that names none. begin is the first line equal to
+  # begin:, end the first line after it equal to end:, both compared with
+  # leading and trailing whitespace stripped. A region whose markers match no
+  # lines (no begin, or no end after it) is empty, so every line is locked
+  # rather than none.
+  def editable_region(region, lines)
+    return nil if region.nil?
+    return 0...0 unless region.is_a?(Hash) && region["begin"] && region["end"]
+
+    stripped = lines.map(&:strip)
+    first = stripped.index(region["begin"].to_s.strip)
+    return 0...0 if first.nil?
+
+    last = stripped[(first + 1)..].index(region["end"].to_s.strip)
+    return 0...0 if last.nil?
+
+    (first + 1)...(first + 1 + last)
+  end
+
   # Output a JavaScript code based on a given yml, line in script, and matches data.
-  def output_script_js(form, line, app_name, dir_name)
+  # Each template line renders into its own segment of selectedValues, which
+  # records the fields it holds (ocForm.templateLine in public/form.js). role
+  # is templateLine's: nil for its default, "fixed" for a line locked though
+  # it holds no field, as every line outside an editable region is, or
+  # "regionBegin" for the fixed line that opens the region, which lets lines
+  # be added after it.
+  def output_script_js(form, line, app_name, dir_name, role: nil)
+    flags = role ? ", '#{role}'" : ""
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
     line = escape_js_string(line)
 
     matches = line.scan(/\#\{.+?\}/)
-    return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
+    return "  ocForm.templateLine(selectedValues, []#{flags}).push(\'#{line}\');\n" if matches.empty?
 
     keys = matches.flat_map do |str|
       inner = str[2..-2] # "#{time_1}" -> "time_1"
@@ -338,9 +365,9 @@ helpers do
       can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
       separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+      return "  ocForm.showLine(ocForm.templateLine(selectedValues, #{keys_array}#{flags}), '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
     else
-      return "  selectedValues.push('#{line}');\n"
+      return "  ocForm.templateLine(selectedValues, []#{flags}).push('#{line}');\n"
     end
   end
 
@@ -360,8 +387,7 @@ helpers do
              'submit'
            end
     if type
-      html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
-              "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
+      html << "onchange=\"ocForm.updateArea('#{type}', '#{key}')\""
       html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
@@ -481,7 +507,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -531,7 +557,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -575,19 +601,14 @@ helpers do
              'submit'
            end
     if type
-      html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
-      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
+      html += "oninput=\"ocForm.updateArea('#{type}', '#{key}')\""
       html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html += "style=\"background-color: #{@conf["non_script_color"]};\""
     end
     html += ">\n"
     html += "<button type=\"button\" class=\"btn btn-dark mt-0 text-nowrap\" data-bs-toggle=\"modal\" data-bs-target=\"#modal-#{key}\" tabindex=\"-1\" "
-    if type
-      html += "onclick=\"ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    else
-      html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    end
+    html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
     html += <<~HTML
     </div>
     <div class="modal" id="modal-#{key}">
@@ -659,7 +680,7 @@ helpers do
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
     onclick = if type
-                "ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')})"
+                "ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')"
               else
                 "ocForm.updatePath('#{key}')"
               end
@@ -1052,8 +1073,14 @@ HTML
 
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     if !script_content.nil?
-      script_content.split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line, app_name, dir_name)
+      lines  = script_content.split("\n")
+      region = editable_region(body["editable_region"], lines)
+      lines.each_with_index do |line, n|
+        role = if region.nil? || region.cover?(n) then nil
+               elsif n == region.begin - 1 then "regionBegin"
+               else "fixed"
+               end
+        @js["script"] += output_script_js(obj, line, app_name, dir_name, role: role)
       end
     end
 

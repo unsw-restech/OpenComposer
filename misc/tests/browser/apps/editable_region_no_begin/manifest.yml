@@ -1,0 +1,3 @@
+name: Editable region test, no begin marker
+description: |
+  A form for the browser tests of an editable region whose begin marker matches no line.

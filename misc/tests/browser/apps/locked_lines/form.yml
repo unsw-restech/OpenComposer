@@ -1,0 +1,24 @@
+---
+form:
+  cores:
+    widget: number
+    label: Cores
+    value: 1
+    min: 1
+
+  hours:
+    widget: number
+    label: Hours
+    value: 1
+    min: 0
+
+  minutes:
+    widget: number
+    label: Minutes
+    value: 5
+    min: 0
+
+script: |
+  #PBS -l select=1:ncpus=#{cores}
+  #PBS -l walltime=#{hours}:#{zeropadding(minutes, 2)}:00
+  echo hello

@@ -1,0 +1,16 @@
+form:
+  name:
+    widget: text
+    label: Name
+    value: run
+
+# The end marker's only line comes before the begin marker.
+editable_region:
+  begin: "python run.py"
+  end: "END"
+
+script: |
+  cat > run.py <<'END'
+  print("#{name}")
+  END
+  python run.py

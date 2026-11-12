@@ -62,16 +62,8 @@
       <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
       <div id="<%= OC_SCRIPT_CONTENT %>_editor" class="position-relative mt-1 mb-3 flex-grow-1">
         <pre id="<%= OC_SCRIPT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= OC_SCRIPT_CONTENT %>_highlight" class="d-block"></code></pre>
-        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" onchange="ocForm.markManuallyModified('script')" oninput="ocForm.updateHeight(ocForm.scriptArea); ocForm.storePreviousValue('<%= OC_SCRIPT_CONTENT %>'); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
+        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" onbeforeinput="ocForm.paneEditing('script')" oninput="ocForm.paneEdited('script'); ocForm.updateHeight(ocForm.scriptArea); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
       </div>
-      <!-- Submit Button -->
-      <% if @form_action == "confirm" || @form_action == "confirm-save" %>
-      <button class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" type="button" data-bs-toggle="modal" data-bs-target="#modal-<%= SUBMIT_CONFIRM %>" tabindex="<%= @table_index + 1 %>">
-        Confirm
-      </button>
-      <% else %>
-      <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @form_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
-      <% end %>
       <div class="modal fade" id="modal-<%= SUBMIT_CONFIRM %>" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
           <div class="modal-content">
@@ -81,7 +73,7 @@
                   <div class="col">
                     <div id="<%= SUBMIT_CONTENT %>_editor" class="position-relative w-100">
                       <pre id="<%= SUBMIT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= SUBMIT_CONTENT %>_highlight" class="d-block"></code></pre>
-                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" onchange="ocForm.markManuallyModified('submit')" oninput="ocForm.updateHeight(ocForm.submitArea); ocForm.storePreviousValue('<%= SUBMIT_CONTENT %>'); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
+                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" onbeforeinput="ocForm.paneEditing('submit')" oninput="ocForm.paneEdited('submit'); ocForm.updateHeight(ocForm.submitArea); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
                     </div>
                   </div>
                 </div>
@@ -100,24 +92,18 @@
       </div>
     </div>
   </div>
-</form>
-<!-- Overwrite Warning Modal -->
-<div class="modal fade" id="<%= WARNING_MODAL %>" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Warning</h4>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body" id="<%= WARNING_MESSAGE %>">
-      </div>
-      <div class="modal-footer">
-        <button id="<%= WARNING_MODAL_CANCEL %>" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button id="<%= WARNING_MODAL_DISCARD %>" type="button" class="btn btn-danger" data-bs-dismiss="modal">Discard and continue</button>
-      </div>
-    </div>
+
+  <!-- Submit bar: one button, kept at the bottom of the window while any of the form is on screen. -->
+  <div id="<%= SUBMIT_BUTTON %>_bar" class="sticky-bottom row mx-1 px-2 py-2 bg-gradient border-top" style="background: <%= @conf['form_color'] %>;">
+    <% if @form_action == "confirm" || @form_action == "confirm-save" %>
+    <button class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" type="button" data-bs-toggle="modal" data-bs-target="#modal-<%= SUBMIT_CONFIRM %>" tabindex="<%= @table_index + 1 %>">
+      Confirm
+    </button>
+    <% else %>
+    <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @form_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
+    <% end %>
   </div>
-</div>
+</form>
 
 <script>
 var ocForm = ocForm || {};
@@ -157,13 +143,24 @@ ocForm.decorateSchedulerDirectives = function(area, highlight) {
   if (!area || !highlight) return;
   const directivePattern = /^(?:#(?:PJM|SBATCH|PBS)\b|#\$)/;
   const sourceLines = area.value.split('\n');
-  const highlightedLines = highlight.innerHTML.split('\n');
+  const highlightedLines = ocForm.highlightedLines(highlight.innerHTML);
 
   highlight.innerHTML = highlightedLines.map((lineHtml, index) => {
     const sourceLine = sourceLines[index] || '';
     if (!directivePattern.test(sourceLine.trimStart())) return lineHtml;
 
     return `<span class="oc-scheduler-directive">${lineHtml}</span>`;
+  }).join('\n');
+};
+
+// Shade the locked lines of the pane name (ocForm.lineLock in form.js). An
+// empty locked line gets a zero-width space, so that its shading shows.
+ocForm.decorateLockedLines = function(name, highlight) {
+  if (!ocForm.panes[name] || !highlight) return;
+
+  highlight.innerHTML = ocForm.highlightedLines(highlight.innerHTML).map((lineHtml, n) => {
+    if (ocForm.lineLock(name, n) === null) return lineHtml;
+    return `<span class="oc-locked-line" data-line="${n}">${lineHtml || '&#8203;'}</span>`;
   }).join('\n');
 };
 
@@ -177,25 +174,27 @@ ocForm.syncCaretColor = function(area, highlight) {
   }
 };
 
-// Sync a textarea content to the corresponding highlight area.
-ocForm.syncHighlight = function(area, highlight) {
+// Sync a textarea content to the corresponding highlight area; name is the
+// textarea's pane (ocForm.panes).
+ocForm.syncHighlight = function(area, highlight, name) {
   if (!area || !highlight) return;
 
   highlight.textContent = area.value;
   highlight.removeAttribute('data-highlighted');
   hljs.highlightElement(highlight);
   ocForm.decorateSchedulerDirectives(area, highlight);
+  ocForm.decorateLockedLines(name, highlight);
   ocForm.syncCaretColor(area, highlight);
 };
 
 // Sync the script textarea content to the highlight area.
 ocForm.syncScriptHighlight = function() {
-  ocForm.syncHighlight(ocForm.scriptArea, ocForm.scriptHighlight);
+  ocForm.syncHighlight(ocForm.scriptArea, ocForm.scriptHighlight, 'script');
 };
 
 // Sync the submit textarea content to the highlight area.
 ocForm.syncSubmitHighlight = function() {
-  ocForm.syncHighlight(ocForm.submitArea, ocForm.submitHighlight);
+  ocForm.syncHighlight(ocForm.submitArea, ocForm.submitHighlight, 'submit');
 };
 
 // Keep the highlight overlay visibility in sync with the textarea.
@@ -246,152 +245,35 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
-ocForm["scriptManuallyModified"] = false;
-ocForm["submitManuallyModified"] = false;
-ocForm.previousScript = ""
 ocForm.multiSelectDisabledIndexes = {};
-ocForm.previousValues = {};
-ocForm.previousRadioValues = {};
 
-// Save the current value of a form element before modification.
-ocForm.storePreviousValue = function(id) {
-  const element = document.getElementById(id);
-  if (!element) return;
-
-  if (element.type === "radio") {
-    let previous = ocForm.previousValues[element.name];
-    if (previous === undefined) {
-      const radios = document.querySelectorAll(`input[name="${element.name}"]`);
-      radios.forEach(r => {
-        if (r.defaultChecked) previous = r.id;
-      });
-    }
-
-    ocForm.previousValues[element.name] = element.id;
-    ocForm.previousRadioValues[element.name] = previous;
-  }
-  else {
-    ocForm.previousValues[id] = element.value;
-  }
-};
-
-// Save the current value of a form element before modification.
-ocForm.restorePreviousValue = function(id) {
-  const element = document.getElementById(id);
-  if (!element) return;
-
-  if (element.type === "radio") {
-    const prevId = ocForm.previousRadioValues[element.name];
-
-    if (prevId) {
-      const prev = document.getElementById(prevId);
-      if (prev) {
-        prev.checked = true;
-        ocForm.previousValues[element.name] = prevId;
-      }
-    }
-  }
-  else if (element.type === "checkbox") {
-    element.checked = !element.checked;
-  }
-  else {
-    if (ocForm.previousValues[id] !== undefined) {
-      element.value = ocForm.previousValues[id];
-    }
-  }
-};
-
-// Mark that the script/submit section was manually edited by the user.
-ocForm.markManuallyModified = function(content_type) {
-  if (content_type === "script") {
-    ocForm["scriptManuallyModified"] = <%= @script_overwrite_warning_enabled ? "true" : "false" %>;
-  }
-  else { // content_type is "submit"
-    ocForm["submitManuallyModified"] = <%= @submit_overwrite_warning_enabled ? "true" : "false" %>;
-  }
-};
-
-// Show the overwrite warning modal if the script was manually modified.
-// If the user chooses "Discard and continue", execute the provided callback (onDiscard).
-// content_type is "both", "script" or "submit"
-ocForm.confirmOverwrite = function(content_type, id, onDiscard) {
-  const types = content_type === "both" ? ["script", "submit"] : [content_type];
-  const modifiedKeys = types.map(t => t === "script" ? "scriptManuallyModified" : "submitManuallyModified");
-  const contentAreas = types.map(t => t === "script" ? ocForm.scriptArea : ocForm.submitArea);
-  const area = content_type === "both"
-             ? (ocForm["scriptManuallyModified"] && ocForm["submitManuallyModified"] ? "script and submit areas" :
-                ocForm["scriptManuallyModified"] ? "script area" :
-                ocForm["submitManuallyModified"] ? "submit area" :
-                "script and submit areas")
-             : (content_type === "script" ? "script area" : "submit area");
-  const element = document.getElementById(id);
-
-  if (modifiedKeys.every(k => !ocForm[k])) {
-    onDiscard();
-    return;
-  }
-
-  if (!ocForm.overwriteModal) {
-    ocForm.overwriteModal = new bootstrap.Modal(document.getElementById('<%= WARNING_MODAL %>'));
-  }
-
-  document.getElementById('<%= WARNING_MESSAGE %>').textContent =
-    `Your manual changes in the ${area} will be discarded. Do you want to continue?`;
-
-  ocForm.overwriteModal.show();
-
-  document.getElementById('<%= WARNING_MODAL_CANCEL %>').onclick = () => {
-    ocForm.restorePreviousValue(id);
-
-    contentAreas.forEach(a => {
-      ocForm.restorePreviousValue(a.id);
-      ocForm.updateHeight(a);
-    });
-
-    ocForm.execDynamicWidget(id);
-    modifiedKeys.forEach(k => ocForm[k] = true);
-  };
-
-  document.getElementById('<%= WARNING_MODAL_DISCARD %>').onclick = () => {
-    modifiedKeys.forEach(k => ocForm[k] = false);
-    onDiscard();
-  };
-};
-
+// Rewrite the lines of the fields that changed, keeping every other line.
 // content_type is "both", "script" or "submit"
 ocForm.updateArea = function(content_type, id = null) {
-  let scriptValues = [];
-  let submitValues = [];
-
   ocForm.execDynamicWidget(id);
 
   if (content_type === "both" || content_type === "script") {
-    ocForm.updateScriptContents(scriptValues);
-    ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
+    ocForm.rerenderPane('script');
     ocForm.updateHeight(ocForm.scriptArea);
     ocForm.syncScriptHighlight();
   }
 
   if (content_type === "both" || content_type === "submit") {
-    ocForm.updateSubmitContents(submitValues);
-    ocForm.submitArea.value = Object.values(submitValues).join('\n');
+    ocForm.rerenderPane('submit');
     ocForm.updateHeight(ocForm.submitArea);
     ocForm.syncSubmitHighlight();
   }
 };
 
 window.onload = function() {
-  let scriptValues = [];
-  let submitValues = [];
-
   // onceExec() must run first: it creates the multi_select badges, which
   // execDynamicWidget() reads when a multi_select is a Dynamic Form Widget source.
   ocForm.onceExec();
   ocForm.execDynamicWidget();
-  ocForm.updateScriptContents(scriptValues);
-  ocForm.updateSubmitContents(submitValues);
-  ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
-  ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
+  ocForm.initPane('script', ocForm.scriptArea, ocForm.updateScriptContents,
+                  ocForm.isScriptCache() ? ocForm.loadScriptCache() : null);
+  ocForm.initPane('submit', ocForm.submitArea, ocForm.updateSubmitContents,
+                  ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : null);
   ocForm.refreshEditorLayout();
 
   window.addEventListener('resize', () => {

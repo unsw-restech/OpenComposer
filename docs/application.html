@@ -36,7 +36,7 @@
         <li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. Save file</a></li>
         <li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. Hide script</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. Special variables</a></li>
-        <li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. Disable warning</a></li>
+        <li class="nav-item ms-3"><a href="#field_lines" class="nav-link">5.5. Editing the generated script</a></li>
         <li class="nav-item"><a href="#check" class="nav-link">6. Check section</a></li>
         <li class="nav-item"><a href="#submit" class="nav-link">7. Submit section</a></li>
         <li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
@@ -776,23 +776,33 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
         <li>#{OC_JOB_NAME}: <code>Job Name</code> defined in the <code>header</code> section</li>
       </ul>
 
-      <h3 id="overwrite_warning">5.5. Disable warning</h3>
+      <h3 id="field_lines">5.5. Editing the generated script</h3>
       <p>
-        If you try to modify a widget that affects the <code>script</code> or <code>submit</code> section after manually editing those sections, a warning like the one below will appear.
-        If you click "Discard and continue", the changes you made to the section will be discarded and a new script will be generated.
+        Users can edit the <code>script</code> and <code>submit</code> sections after they are generated.
+        Changing a widget afterwards rewrites only the lines that hold that widget's variables (and those of any widget it changes); every other line, edited or not, is kept.
+        A line that holds a widget's variable is locked: it is shaded, an edit that would change it is undone, hovering it shows "Set by" and the widget's label, and clicking it focuses the widget. Lines can still be added before and after it.
+        The <code>overwrite_warning</code> setting of earlier versions is no longer read.
       </p>
-  <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
       <p>
-        To disable this warning, set <code>overwrite_warning: false</code> in the configuration of the section where you want to disable the warning.
+        A form can make only part of the <code>script</code> section editable with a top-level <code>editable_region</code> key naming two of its lines.
+        <code>begin</code> is the first line equal to <code>begin</code>, and <code>end</code> the first line after it equal to <code>end</code>, each compared with leading and trailing whitespace stripped.
+        Only the lines between them are editable (lines holding a widget's variable among them stay locked); the two marker lines and every line outside them are locked, show "Fixed by the form", and no line can be added outside them.
+        The marker lines are submitted as written.
+        If no line matches <code>begin</code>, or no line after it matches <code>end</code>, every line of the <code>script</code> section is locked.
       </p>
-
-      <pre>script:
-  overwrite_warning: false
-  content: |</pre>
-
-      <pre>submit:
-  overwrite_warning: false
-  content: |</pre>
+      <pre>form:
+  name:
+    widget: text
+    value: run
+editable_region:
+  begin: "cat &gt; run.py &lt;&lt;'END'"
+  end: "END"
+script: |
+  #!/bin/bash
+  cat &gt; run.py &lt;&lt;'END'
+  print("#{name}")
+  END
+  python run.py</pre>
       <h2 id="check">6. Check section</h2>
       <p>
   Variables defined in the <code>form</code> section can be validated in the <code>check</code> section using the Ruby language and the function <code>oc_assert(condition, message)</code>.
