@@ -270,12 +270,13 @@ helpers do
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
   # Each template line renders into its own segment of selectedValues, which
-  # records the fields it holds (ocForm.templateLine in public/form.js). A
-  # fixed line is locked though it holds no field, as every line outside an
-  # editable region is, and the line that opens the region lets lines be
-  # added after it.
-  def output_script_js(form, line, app_name, dir_name, fixed: false, opens_region: false)
-    flags = fixed ? ", true#{opens_region ? ', true' : ''}" : ""
+  # records the fields it holds (ocForm.templateLine in public/form.js). role
+  # is templateLine's: nil for its default, "fixed" for a line locked though
+  # it holds no field, as every line outside an editable region is, or
+  # "regionBegin" for the fixed line that opens the region, which lets lines
+  # be added after it.
+  def output_script_js(form, line, app_name, dir_name, role: nil)
+    flags = role ? ", '#{role}'" : ""
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
     line = escape_js_string(line)
@@ -1075,9 +1076,11 @@ HTML
       lines  = script_content.split("\n")
       region = editable_region(body["editable_region"], lines)
       lines.each_with_index do |line, n|
-        fixed = !region.nil? && !region.cover?(n)
-        @js["script"] += output_script_js(obj, line, app_name, dir_name,
-                                          fixed: fixed, opens_region: !region.nil? && n == region.begin - 1)
+        role = if region.nil? || region.cover?(n) then nil
+               elsif n == region.begin - 1 then "regionBegin"
+               else "fixed"
+               end
+        @js["script"] += output_script_js(obj, line, app_name, dir_name, role: role)
       end
     end
 
