@@ -1,5 +1,6 @@
 """A form's editable_region: only the lines between its two marker lines are editable."""
 
+import pytest
 from playwright.sync_api import Page, expect
 
 from test_locked_lines import caret_after, pane, point_at_line, shaded_lines
@@ -88,6 +89,27 @@ def test_without_a_region_only_field_lines_are_locked(serve, page: Page):
     expect(pane(page)).to_have_value(
         "\n#PBS -l select=1:ncpus=1\n#PBS -l walltime=1:05:00\necho hello world\necho mine"
     )
+
+
+@pytest.mark.parametrize("form", ["/editable_region_no_begin", "/editable_region_no_end"])
+def test_markers_that_match_no_lines_lock_every_line(serve, page: Page, form):
+    script = "cat > run.py <<'END'\nprint(\"run\")\nEND\npython run.py"
+    page.goto(serve({}) + form)
+    expect(pane(page)).to_have_value(script)
+    assert shaded_lines(page) == script.split("\n")
+    for n, title in enumerate(["Fixed by the form", "Set by Name", "Fixed by the form", "Fixed by the form"]):
+        point_at_line(page, n)
+        expect(pane(page)).to_have_attribute("title", title)
+    caret_after(page, "<<'END'")
+    page.keyboard.press("Enter")
+    page.keyboard.type("import os")
+    caret_after(page, "python run.py")
+    page.keyboard.press("Enter")
+    page.keyboard.type("echo mine")
+    pane(page).focus()
+    page.keyboard.press("Control+Home")
+    page.keyboard.press("Enter")
+    expect(pane(page)).to_have_value(script)
 
 
 def test_no_line_can_be_added_outside_the_region(serve, page: Page):

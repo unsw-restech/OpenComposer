@@ -252,16 +252,18 @@ helpers do
   # or nil for a form that names none. begin is the first line equal to
   # begin:, end the first line after it equal to end:, both compared with
   # leading and trailing whitespace stripped. A region whose markers match no
-  # lines is nil too.
+  # lines (no begin, or no end after it) is empty, so every line is locked
+  # rather than none.
   def editable_region(region, lines)
-    return nil unless region.is_a?(Hash) && region["begin"] && region["end"]
+    return nil if region.nil?
+    return 0...0 unless region.is_a?(Hash) && region["begin"] && region["end"]
 
     stripped = lines.map(&:strip)
     first = stripped.index(region["begin"].to_s.strip)
-    return nil if first.nil?
+    return 0...0 if first.nil?
 
     last = stripped[(first + 1)..].index(region["end"].to_s.strip)
-    return nil if last.nil?
+    return 0...0 if last.nil?
 
     (first + 1)...(first + 1 + last)
   end
