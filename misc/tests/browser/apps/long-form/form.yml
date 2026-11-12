@@ -1,0 +1,85 @@
+---
+# Enough fields and script lines that neither column fits in the window.
+form:
+  f01: {widget: number, label: Field 1, value: 1}
+  f02: {widget: number, label: Field 2, value: 2}
+  f03: {widget: number, label: Field 3, value: 3}
+  f04: {widget: number, label: Field 4, value: 4}
+  f05: {widget: number, label: Field 5, value: 5}
+  f06: {widget: number, label: Field 6, value: 6}
+  f07: {widget: number, label: Field 7, value: 7}
+  f08: {widget: number, label: Field 8, value: 8}
+  f09: {widget: number, label: Field 9, value: 9}
+  f10: {widget: number, label: Field 10, value: 10}
+  f11: {widget: number, label: Field 11, value: 11}
+  f12: {widget: number, label: Field 12, value: 12}
+  f13: {widget: number, label: Field 13, value: 13}
+  f14: {widget: number, label: Field 14, value: 14}
+  f15: {widget: number, label: Field 15, value: 15}
+  f16: {widget: number, label: Field 16, value: 16}
+
+script: |
+  #PBS -l select=1:ncpus=#{f01}
+  echo "#{f02} #{f03} #{f04} #{f05} #{f06} #{f07} #{f08}"
+  echo "#{f09} #{f10} #{f11} #{f12} #{f13} #{f14} #{f15} #{f16}"
+  echo line 01
+  echo line 02
+  echo line 03
+  echo line 04
+  echo line 05
+  echo line 06
+  echo line 07
+  echo line 08
+  echo line 09
+  echo line 10
+  echo line 11
+  echo line 12
+  echo line 13
+  echo line 14
+  echo line 15
+  echo line 16
+  echo line 17
+  echo line 18
+  echo line 19
+  echo line 20
+  echo line 21
+  echo line 22
+  echo line 23
+  echo line 24
+  echo line 25
+  echo line 26
+  echo line 27
+  echo line 28
+  echo line 29
+  echo line 30
+  echo line 31
+  echo line 32
+  echo line 33
+  echo line 34
+  echo line 35
+  echo line 36
+  echo line 37
+  echo line 38
+  echo line 39
+  echo line 40
+  echo line 41
+  echo line 42
+  echo line 43
+  echo line 44
+  echo line 45
+  echo line 46
+  echo line 47
+  echo line 48
+  echo line 49
+  echo line 50
+  echo line 51
+  echo line 52
+  echo line 53
+  echo line 54
+  echo line 55
+  echo line 56
+  echo line 57
+  echo line 58
+  echo line 59
+  echo line 60
+  echo the last line

@@ -23,6 +23,10 @@ Changing a widget rewrites only the lines of the script and submit panes that ho
 
 Text on the navbar, its dropdown menus, the footer, the home page's category headings and the description banners of the form and history pages is black or white, whichever contrasts more with the background colour the config sets for it (WCAG relative luminance). Upstream hard-codes white, which is unreadable on a light colour such as Katana OnDemand's yellow. The rule reads colours written as `#RGB`, `#RRGGBB` (either with alpha) or `rgb()`; any other colour keeps white text. Upstream's default colours are dark, so they still get white.
 
+### Submit bar
+
+The form page's one Submit button (Confirm or Save, when the form's action is one of those) sits in a bar across the bottom of the form that stays at the bottom of the window while any of the form is on screen, so it is in reach from the first field, the middle of the script pane and the end of the page. Upstream puts it below the script pane, out of sight on a long form.
+
 ## Overview
 
 Open Composer is a web application to generate batch job scripts and submit batch jobs for HPC clusters on [Open OnDemand](https://openondemand.org/).
