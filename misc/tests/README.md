@@ -58,3 +58,9 @@ such as an `apps_dir` that doesn't exist. The browser tests' defaults fill in
 what the file leaves out, and a relative `apps_dir` or `data_dir` resolves
 from the directory `serve` runs in. Stop it with Ctrl-C or SIGTERM, which also
 removes its directory.
+
+`serve` runs in production mode (`RACK_ENV=production`), as the browser tests
+do, so an uncaught exception reads a bare "Internal Server Error". Open
+OnDemand runs a system app in production mode too, but a sandbox app, under
+**Develop**, in development mode, where the error page also names the exception
+and its message, so check what a sandbox app shows on the platform itself.
