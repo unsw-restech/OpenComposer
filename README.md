@@ -39,6 +39,10 @@ editable_region:
 
 Text on the navbar, its dropdown menus, the footer, the home page's category headings and the description banners of the form and history pages is black or white, whichever contrasts more with the background colour the config sets for it (WCAG relative luminance). Upstream hard-codes white, which is unreadable on a light colour such as Katana OnDemand's yellow. The rule reads colours written as `#RGB`, `#RRGGBB` (either with alpha) or `rgb()`; any other colour keeps white text. Upstream's default colours are dark, so they still get white.
 
+### A missing `apps_dir`
+
+When the folder `apps_dir` names doesn't exist, the home page and every form URL show a normal page with the message "No forms: `<apps_dir>` doesn't exist.", naming the folder, and the history page shows as usual. Upstream answers every page with an Internal Server Error. An `apps_dir` that exists but holds no forms still shows an empty home page, and a config with no `apps_dir:` key still fails with its own message.
+
 ### Submit bar
 
 The form page's one Submit button (Confirm or Save, when the form's action is one of those) sits in a bar across the bottom of the form that stays at the bottom of the window while any of the form is on screen, so it is in reach from the first field, the middle of the script pane and the end of the page. Upstream puts it below the script pane, out of sight on a long form.
