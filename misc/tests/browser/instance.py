@@ -4,7 +4,8 @@
 `workdir`, links the app's code beside it and starts it with `rackup`. The
 checkout's own `conf.yml.erb` is never read or written. `conf` needs no
 `apps_dir`, `scheduler` or `data_dir`: they default to the browser tests'
-`apps/`, `pbspro` and `workdir/data`.
+`apps/`, `pbspro` and `workdir/data`. A key set to `None` is left out of the
+`conf.yml`, default included.
 
 Run as a script, through `misc/tests/serve <conf.yml>`, it starts one
 instance on that file's settings, prints its URL and log, and keeps it up
@@ -61,6 +62,7 @@ def start(conf, workdir):
         (workdir / name).symlink_to(ROOT / name)
     instance_conf = {"apps_dir": str(APPS), "scheduler": "pbspro",
                      "data_dir": str(workdir / "data"), **conf}
+    instance_conf = {k: v for k, v in instance_conf.items() if v is not None}
     (workdir / "conf.yml").write_text(yaml.safe_dump(instance_conf))
     port = _free_port()
     log = workdir / "rackup.log"

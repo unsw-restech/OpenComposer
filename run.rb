@@ -300,12 +300,15 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
 
   @ood_logo_path = URI.join(@my_ood_url, @script_name + "/", "ood.png")
   @current_path  = File.join(@script_name, @dir_name)
-  @manifests     = create_all_manifests(@apps_dir).sort_by { |m| [natural_sort_key(m.category || ""), natural_sort_key(m.name)] }
+  missing_apps_dir_msg = "No forms: <code>#{escape_html(@apps_dir)}</code> doesn't exist." unless File.exist?(@apps_dir)
+  @manifests     = missing_apps_dir_msg ? [] : create_all_manifests(@apps_dir).sort_by { |m| [natural_sort_key(m.category || ""), natural_sort_key(m.name)] }
   @manifests_w_category, @manifests_wo_category = @manifests.partition(&:category)
 
   case @dir_name
   when ""
     @name = "Home"
+    @error_msg = missing_apps_dir_msg
+    return erb :error if @error_msg != nil
     return erb :index
   when "history"
     @name          = "History"
@@ -439,7 +442,7 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
       @script_path = script_path
       return erb :form
     else
-      @error_msg = "#{request.url} is not found."
+      @error_msg = missing_apps_dir_msg || "#{request.url} is not found."
       return erb :error
     end
   end
