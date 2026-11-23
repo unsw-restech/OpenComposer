@@ -58,10 +58,14 @@ one lock, while upstream ignores every `Gemfile.lock` (unsw-restech/iris#176).
 
 Every gem in the lock is at the version Katana OnDemand 4.2.5-1 runs the
 checkouts with, and CI's `ruby-version` is its Ruby. Its Passenger runs
-`config.ru` on OnDemand's own Ruby and gems rather than a bundle. The versions
-were read from the PUN on 2026-11-23, through a throwaway dev app that printed
-`Gem.loaded_specs`, and the commit that added the lock lists each one. Two
-points the lock doesn't show:
+`config.ru` on OnDemand's own Ruby and gems rather than a bundle.
+`misc/gemcheck/ondemand.txt` holds the Ruby and gems the PUN loaded on
+2026-11-23, and CI's "Gems match Katana OnDemand's" step
+(`misc/gemcheck/compare.rb`) fails when CI's Ruby, or any gem the lock
+locks, differs from it in version or platform. It names the PUN's other
+gems, such as OnDemand's newer erb, without comparing them: CI loads them
+from Ruby itself. Two points the lock doesn't
+show:
 
 - sqlite3 is the source gem, compiled with mini_portile2, as OnDemand
   installs it. Bundler picks the precompiled gem for CI's platform even
@@ -70,15 +74,36 @@ points the lock doesn't show:
   to compile it too.
 - rackup and webrick are used only by the tests, to serve the app.
 
-To upgrade a gem, run `bundle update --conservative <gem>` with
-`BUNDLE_GEMFILE=misc/Gemfile`, using the Bundler version the lock's
-`BUNDLED WITH` names. Commit the lock change on its own, with the old and new
-versions in the message, and merge it only once CI is green on it.
-`--conservative` moves only that gem and the gems that pin it exactly: sinatra
-brings sinatra-contrib and rack-protection along. In a dry run on this lock,
-updating sinatra without the flag also moved rack and tilt. When Katana
-OnDemand is upgraded, read its versions again and move the lock and
-`ruby-version` to them the same way.
+## Reading the PUN's gems
+
+Katana's login nodes have no OnDemand install, and `kod`, the OnDemand
+node, refuses ssh from them (both seen on 2026-11-23, in #176's session), so the PUN's gems are read through a dev app,
+`misc/gemcheck/config.ru`. It creates two paths in the IRIS maintainer's
+Katana home and removes them after, so ask for their go-ahead first, naming
+both, and for the page visit in step 2:
+
+1. Copy `misc/gemcheck/config.ru` and `misc/gemcheck/report.rb` into
+   `~/ondemand/dev/gemcheck/` on Katana.
+2. The IRIS maintainer opens
+   `https://kod.restech.unsw.edu.au/pun/dev/gemcheck` once. The page shows
+   the report, and writes it to `~/gemcheck.txt`.
+3. Replace everything below `ondemand.txt`'s comment line with
+   `~/gemcheck.txt`, and give the comment line the OnDemand version and
+   the date.
+4. Remove `~/ondemand/dev/gemcheck/` and `~/gemcheck.txt`.
+
+## Moving the lock
+
+The lock follows OnDemand, so it moves when Katana OnDemand is upgraded:
+read the PUN's gems again, then bring the lock and `ruby-version` to them.
+Move each gem with `bundle update --conservative <gem>`, with
+`BUNDLE_GEMFILE=misc/Gemfile` and the Bundler version the lock's
+`BUNDLED WITH` names, until `bundle exec ruby misc/gemcheck/compare.rb`
+passes. Commit `ondemand.txt`, the lock and `ruby-version` together, with
+the old and new versions in the message, and merge once CI is green on it.
+`--conservative` moves only that gem and the gems that pin it exactly:
+sinatra brings sinatra-contrib and rack-protection along. In a dry run on
+this lock, updating sinatra without the flag also moved rack and tilt.
 
 # Trying a conf by hand
 

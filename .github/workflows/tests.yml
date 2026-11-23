@@ -26,6 +26,9 @@ jobs:
           ruby-version: "3.3.12" # Katana OnDemand 4.2.5-1's Ruby
           bundler-cache: true
 
+      - name: Gems match Katana OnDemand's
+        run: bundle exec ruby misc/gemcheck/compare.rb
+
       - uses: astral-sh/setup-uv@v10.3.0
 
       - name: Smoke and browser tests
