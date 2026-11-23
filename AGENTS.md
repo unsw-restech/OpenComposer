@@ -6,5 +6,5 @@ The README's "About this fork" says what the fork is for.
 - **`gh` targets the parent repo in a fork**, OpenOnDemandJP, unless set otherwise. This clone has `gh repo set-default unsw-restech/OpenComposer`; set it again in any new clone.
 - **Upstream comes in by release tag only**, one tag per merge, kept only once the browser tests pass on the merge. Never merge upstream `main` or `develop`.
 - **Tests**: `misc/tests/run` runs every test, as CI does; `misc/tests/README.md` has the detail.
-- **CI's gems are pinned** in `misc/Gemfile.lock`, to Katana OnDemand's versions. Upgrade one gem per commit, merged once CI is green on it; `misc/tests/README.md`'s "Pinned gems" has the steps.
+- **CI's gems are pinned** in `misc/Gemfile.lock`, to Katana OnDemand's versions, and CI fails when they differ from `misc/gemcheck/ondemand.txt`, what its PUN loads. `misc/tests/README.md`'s "Pinned gems" says how to read the PUN's gems and move the lock.
 - **Trying a conf**: `misc/tests/serve <conf.yml>` shows what a page looks like under some settings. Run it as a background task, read its URL from the task's output, and stop the task when done.
