@@ -4,6 +4,8 @@
 # bundle
 Gemfile
 Gemfile.lock
+# CI's pinned gems (unsw-restech/iris#176)
+!misc/Gemfile.lock
 vendor/
 .bundle
 TODO_ja.md

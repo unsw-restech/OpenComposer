@@ -49,6 +49,37 @@ gems in `misc/Gemfile`, from bundler or `gem install --user-install`, and
 them, and elsewhere run
 `sudo ~/.cache/opencomposer-tests/venv/bin/playwright install-deps chromium-headless-shell`.
 
+# Pinned gems
+
+CI installs exactly the versions in `misc/Gemfile.lock`, in Bundler's frozen
+mode (`BUNDLE_FROZEN` in `.github/workflows/tests.yml`), so a run that would
+change the lock fails instead of resolving newer gems. This fork tracks that
+one lock, while upstream ignores every `Gemfile.lock` (unsw-restech/iris#176).
+
+Every gem in the lock is at the version Katana OnDemand 4.2.5-1 runs the
+checkouts with, and CI's `ruby-version` is its Ruby. Its Passenger runs
+`config.ru` on OnDemand's own Ruby and gems rather than a bundle. The versions
+were read from the PUN on 2026-11-23, through a throwaway dev app that printed
+`Gem.loaded_specs`, and the commit that added the lock lists each one. Two
+points the lock doesn't show:
+
+- sqlite3 is the source gem, compiled with mini_portile2, as OnDemand
+  installs it. Bundler picks the precompiled gem for CI's platform even
+  though the lock lists only `ruby` (CI run 45107464826 installed
+  `sqlite3 1.7.3 (x86_64-linux)`), so CI sets `BUNDLE_FORCE_RUBY_PLATFORM`
+  to compile it too.
+- rackup and webrick are used only by the tests, to serve the app.
+
+To upgrade a gem, run `bundle update --conservative <gem>` with
+`BUNDLE_GEMFILE=misc/Gemfile`, using the Bundler version the lock's
+`BUNDLED WITH` names. Commit the lock change on its own, with the old and new
+versions in the message, and merge it only once CI is green on it.
+`--conservative` moves only that gem and the gems that pin it exactly: sinatra
+brings sinatra-contrib and rack-protection along. In a dry run on this lock,
+updating sinatra without the flag also moved rack and tilt. When Katana
+OnDemand is upgraded, read its versions again and move the lock and
+`ruby-version` to them the same way.
+
 # Trying a conf by hand
 
 `misc/tests/serve <conf.yml>` starts one instance on a conf file, the way
