@@ -14,6 +14,10 @@ jobs:
       BUNDLE_GEMFILE: ${{ github.workspace }}/misc/Gemfile
       # Install exactly misc/Gemfile.lock, and fail rather than re-resolve.
       BUNDLE_FROZEN: "true"
+      # Install every gem from its source gem, as Katana OnDemand does. Only
+      # sqlite3 has precompiled builds, which Bundler picked without this
+      # (run 45107464826).
+      BUNDLE_FORCE_RUBY_PLATFORM: "true"
     steps:
       - uses: actions/checkout@v7
 

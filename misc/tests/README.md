@@ -64,7 +64,10 @@ were read from the PUN on 2026-11-23, through a throwaway dev app that printed
 points the lock doesn't show:
 
 - sqlite3 is the source gem, compiled with mini_portile2, as OnDemand
-  installs it. The lock lists only the `ruby` platform, so CI compiles it too.
+  installs it. Bundler picks the precompiled gem for CI's platform even
+  though the lock lists only `ruby` (CI run 45107464826 installed
+  `sqlite3 1.7.3 (x86_64-linux)`), so CI sets `BUNDLE_FORCE_RUBY_PLATFORM`
+  to compile it too.
 - rackup and webrick are used only by the tests, to serve the app.
 
 To upgrade a gem, run `bundle update --conservative <gem>` with
