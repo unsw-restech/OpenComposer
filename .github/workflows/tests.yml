@@ -12,12 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUNDLE_GEMFILE: ${{ github.workspace }}/misc/Gemfile
+      # Install exactly misc/Gemfile.lock, and fail rather than re-resolve.
+      BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "3.3.12" # Katana OnDemand 4.2.5-1's Ruby
           bundler-cache: true
 
       - uses: astral-sh/setup-uv@v10.3.0
